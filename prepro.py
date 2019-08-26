@@ -21,6 +21,7 @@ def allNum(word):
             allNum=False
             break
     return allNum
+
 def make_vocab(fpath, fname):
     '''Constructs vocabulary.
     

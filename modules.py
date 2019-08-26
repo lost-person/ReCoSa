@@ -8,6 +8,7 @@ https://www.github.com/kyubyong/transformer
 
 from __future__ import print_function
 import tensorflow as tf
+import numpy as np
 
 def normalize(inputs, 
               epsilon = 1e-8,
@@ -39,11 +40,11 @@ def normalize(inputs,
     return outputs
 
 def embedding(inputs, 
-              vocab_size, 
-              num_units, 
-              zero_pad=True, 
+              vocab_size,
+              num_units,
+              zero_pad=True,
               scale=True,
-              scope="embedding", 
+              scope="embedding",
               reuse=None):
     '''Embeds a given tensor.
 
@@ -101,7 +102,7 @@ def embedding(inputs,
       [ 1.22204471 -0.96587461]]]    
     ```    
     '''
-    with tf.variable_scope(scope, reuse=reuse):
+    with tf.variable_scope(scope, reuse = reuse):
         lookup_table = tf.get_variable('lookup_table',
                                        dtype=tf.float32,
                                        shape=[vocab_size, num_units],
@@ -147,7 +148,7 @@ def positional_encoding(inputs,
             [pos / np.power(10000, 2.*i/num_units) for i in range(num_units)]
             for pos in range(T)])
 
-        # Second part, apply the cosine to even columns and sin to odds.
+        # Second part, apply the cosine to even columns and sin to odds. Google
         position_enc[:, 0::2] = np.sin(position_enc[:, 0::2])  # dim 2i
         position_enc[:, 1::2] = np.cos(position_enc[:, 1::2])  # dim 2i+1
 
@@ -213,12 +214,12 @@ def multihead_attention(queries,
         # Scale
         outputs = outputs / (K_.get_shape().as_list()[-1] ** 0.5)
         
-        # Key Masking
-        key_masks = tf.sign(tf.abs(tf.reduce_sum(keys, axis=-1))) # (N, T_k)
+        # Key Masking 保证元素值为0的 unit 的 attention score 极小，以防止对加权求和造成影响
+        key_masks = tf.sign(tf.abs(tf.reduce_sum(keys, axis = -1))) # (N, T_k)
         key_masks = tf.tile(key_masks, [num_heads, 1]) # (h*N, T_k)
         key_masks = tf.tile(tf.expand_dims(key_masks, 1), [1, tf.shape(queries)[1], 1]) # (h*N, T_q, T_k)
         
-        paddings = tf.ones_like(outputs)*(-2**32+1)
+        paddings = tf.ones_like(outputs) * (-2 ** 32 + 1)
         outputs = tf.where(tf.equal(key_masks, 0), paddings, outputs) # (h*N, T_q, T_k)
   
         # Causality = Future blinding
@@ -227,12 +228,13 @@ def multihead_attention(queries,
             tril = tf.contrib.linalg.LinearOperatorTriL(diag_vals).to_dense() # (T_q, T_k)
             masks = tf.tile(tf.expand_dims(tril, 0), [tf.shape(outputs)[0], 1, 1]) # (h*N, T_q, T_k)
    
-            paddings = tf.ones_like(masks)*(-2**32+1)
+            paddings = tf.ones_like(masks)*(-2**32 + 1)
             outputs = tf.where(tf.equal(masks, 0), paddings, outputs) # (h*N, T_q, T_k)
   
         # Activation
         outputs = tf.nn.softmax(outputs) # (h*N, T_q, T_k)
-        attn = outputs 
+        attn = outputs
+
         # Query Masking
         query_masks = tf.sign(tf.abs(tf.reduce_sum(queries, axis=-1))) # (N, T_q)
         query_masks = tf.tile(query_masks, [num_heads, 1]) # (h*N, T_q)
@@ -243,10 +245,10 @@ def multihead_attention(queries,
         outputs = tf.layers.dropout(outputs, rate=dropout_rate, training=tf.convert_to_tensor(is_training))
                
         # Weighted sum
-        outputs = tf.matmul(outputs, V_) # ( h*N, T_q, C/h)
+        outputs = tf.matmul(outputs, V_) # (h*N, T_q, C/h)
         
         # Restore shape
-        outputs = tf.concat(tf.split(outputs, num_heads, axis=0), axis=2 ) # (N, T_q, C)
+        outputs = tf.concat(tf.split(outputs, num_heads, axis=0), axis=2) # (N, T_q, C)
               
         # Residual connection
         outputs += queries
@@ -254,7 +256,7 @@ def multihead_attention(queries,
         # Normalize
         outputs = normalize(outputs) # (N, T_q, C)
  
-    return outputs,attn
+    return outputs, attn
 
 def feedforward(inputs, 
                 num_units=[2048, 512],
@@ -272,7 +274,7 @@ def feedforward(inputs,
     Returns:
       A 3d tensor with the same shape and dtype as inputs
     '''
-    with tf.variable_scope(scope, reuse=reuse):
+    with tf.variable_scope(scope, reuse = reuse):
         # Inner layer
         params = {"inputs": inputs, "filters": num_units[0], "kernel_size": 1,
                   "activation": tf.nn.relu, "use_bias": True}
