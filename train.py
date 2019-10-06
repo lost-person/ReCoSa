@@ -49,9 +49,7 @@ class Graph():
                 # 获取源目标序列的句向量
                 single_cell = tf.nn.rnn_cell.GRUCell(hp.hidden_units)
                 self.rnn_cell = tf.nn.rnn_cell.MultiRNNCell([single_cell] * hp.num_layers)
-                print(self.enc_embed.get_shape())
                 self.sequence_length = tf.reshape(self.x_length, [-1])
-                print(self.sequence_length.get_shape())
                 self.uttn_outputs, self.uttn_states = tf.nn.dynamic_rnn(cell=self.rnn_cell, inputs=self.enc_embed, sequence_length=self.sequence_length, dtype=tf.float32, swap_memory=True)
                 self.enc = tf.reshape(self.uttn_states, [hp.batch_size, hp.max_turn, hp.hidden_units])
                 
@@ -148,7 +146,7 @@ class Graph():
                 
             # Final linear projection
             self.logits = tf.layers.dense(self.dec, len(en2idx))
-            self.preds = tf.to_int32(tf.arg_max(self.logits, dimension=-1))
+            self.preds = tf.to_int32(tf.argmax(self.logits, dimension=-1))
             self.istarget = tf.to_float(tf.not_equal(self.y, 0))
             self.acc = tf.reduce_sum(tf.to_float(tf.equal(self.preds, self.y)) * self.istarget) / (tf.reduce_sum(self.istarget))
             tf.summary.scalar('acc', self.acc)
@@ -156,7 +154,7 @@ class Graph():
             if is_training:  
                 # Loss
                 self.y_smoothed = label_smoothing(tf.one_hot(self.y, depth=len(en2idx)))
-                self.loss = tf.nn.softmax_cross_entropy_with_logits(logits=self.logits, labels=self.y_smoothed)
+                self.loss = tf.nn.softmax_cross_entropy_with_logits_v2(logits=self.logits, labels=self.y_smoothed)
                 self.mean_loss = tf.reduce_sum(self.loss * self.istarget) / (tf.reduce_sum(self.istarget))
                
                 # Training Scheme
@@ -181,6 +179,7 @@ if __name__ == '__main__':
     # Start session
     sv = tf.train.Supervisor(graph=g.graph, 
                              logdir=hp.logdir,
+                             global_step = g.global_step,
                              save_model_secs=0)
     #preEpoch= 
     tfconfig = tf.ConfigProto()
@@ -199,6 +198,7 @@ if __name__ == '__main__':
             
             for step in tqdm(range(g.num_batch), total=g.num_batch, ncols=70, leave=False, unit='b'):
                 _, loss_step, attns, sources, targets = sess.run([g.train_op, g.mean_loss, g.attn, g.source, g.target])
+                print("train loss:%.5lf\n"%(loss_step))
                 loss.append(loss_step)
                 
                 if step % 2000==0:

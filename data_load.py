@@ -10,7 +10,6 @@ from hyperparams import Hyperparams as hp
 import tensorflow as tf
 import numpy as np
 import codecs
-import regex
 
 def load_de_vocab():
     '''
@@ -136,3 +135,25 @@ def get_batch_data():
                                 allow_smaller_final_batch=False)
     
     return x, x_length, y, num_batch, sources, targets# (N, T), (N, T), ()
+
+
+def test():
+    import os
+    file_list = os.listdir('./corpora')
+    for file_name in file_list:
+        if file_name.endswith('query'):
+            with open(os.path.join('./corpora', file_name), 'r', encoding='utf-8') as f:
+                data = f.readlines()
+            data = [line.replace("\t", "</d>") for line in data]
+            with open(os.path.join('./corpora_tmp', file_name), 'w', encoding='utf-8') as f:
+                f.writelines(data)
+        else:
+            with open(os.path.join('./corpora', file_name), 'r', encoding='utf-8') as f:
+                data = f.readlines()
+            data = [line[:-1] + "</d>" + line[-1] for line in data]
+            with open(os.path.join('./corpora_tmp', file_name), 'w', encoding='utf-8') as f:
+                f.writelines(data)
+
+
+if __name__ == "__main__":
+    test()
