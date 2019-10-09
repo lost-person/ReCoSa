@@ -97,7 +97,7 @@ def load_test_data():
     en_sents = [_refine(line) for line in codecs.open(hp.target_test, 'r', 'utf-8').read().split("\n") if line]
         
     X, X_length, Y, Sources, Targets = create_data(de_sents, en_sents)
-    return X,X_length, Sources, Targets # (1064, 150)
+    return X,X_length, Y, Sources, Targets # (1064, 150)
 
 def load_dev_data():
     def _refine(line):
@@ -137,23 +137,100 @@ def get_batch_data():
     return x, x_length, y, num_batch, sources, targets# (N, T), (N, T), ()
 
 
-def test():
-    import os
-    file_list = os.listdir('./corpora')
-    for file_name in file_list:
-        if file_name.endswith('query'):
-            with open(os.path.join('./corpora', file_name), 'r', encoding='utf-8') as f:
-                data = f.readlines()
-            data = [line.replace("\t", "</d>") for line in data]
-            with open(os.path.join('./corpora_tmp', file_name), 'w', encoding='utf-8') as f:
-                f.writelines(data)
-        else:
-            with open(os.path.join('./corpora', file_name), 'r', encoding='utf-8') as f:
-                data = f.readlines()
-            data = [line[:-1] + "</d>" + line[-1] for line in data]
-            with open(os.path.join('./corpora_tmp', file_name), 'w', encoding='utf-8') as f:
-                f.writelines(data)
+def gen_tf_records(records_name, mode='train'):
+    """
+    generate tensorflow records
+
+    Args:
+        data_path: str the path of data_set
+        word2idx_path: str the path of word2idx
+        idx2word_path: str the path of idx2word
+        record_name: str the name of records
+        max_turn: int maximum number of turns
+        max_uttr_turn: int maximum number of words in an utterance
+    """
+    tf_records = tf.python_io.TFRecordWriter(records_name)
+
+    if mode == 'train':
+        X, X_length, Y, Sources, Targets = load_train_data()
+    elif mode == 'dev':
+        X, X_length, Y, Sources, Targets = load_dev_data()
+    else:
+        X, X_length, Y, Sources, Targets = load_test_data()
+
+    for x, x_len, y, source, target in zip(X, X_length, Y, Sources, Targets):
+        features = {
+            'x': tf.train.Feature(bytes_list=tf.train.BytesList(value=[x.tostring()])),
+            'x_len': tf.train.Feature(bytes_list=tf.train.BytesList(value=[x_len.tostring()])),
+            'y': tf.train.Feature(bytes_list=tf.train.BytesList(value=[y.tostring()])),
+            'source': tf.train.Feature(bytes_list=tf.train.BytesList(value=[source.encode()])),
+            'target': tf.train.Feature(bytes_list=tf.train.BytesList(value=[target.encode()]))
+        }
+        tf_features = tf.train.Features(feature=features)
+        tf_example = tf.train.Example(features=tf_features)
+        tf_serialized = tf_example.SerializeToString()
+        tf_records.write(tf_serialized)
+    tf_records.close()
+
+
+def get_record_parser(max_turn=hp.max_turn, max_uttr_len=hp.maxlen):
+    """
+    get the parser to decode record
+
+    Args:
+        max_turn: int maximum number of turn
+        max_uttr_turn: int maximum number of words in an utterance
+    """
+    def parse_example(example_proto):
+        """
+        parse each example in record
+
+        Args:
+            example_proto: tensor a single serialized example
+        """
+        
+        record_dict = {
+            'x': tf.FixedLenFeature(shape=[], dtype=tf.string),
+            'x_len': tf.FixedLenFeature(shape=[], dtype=tf.string),
+            'y': tf.FixedLenFeature(shape=[], dtype=tf.string),
+            'source': tf.FixedLenFeature(shape=[], dtype=tf.string),
+            'target': tf.FixedLenFeature(shape=[], dtype=tf.string)
+        }
+
+        example = tf.parse_single_example(example_proto, features=record_dict)
+        context = tf.reshape(tf.decode_raw(example["x"], tf.int32), [max_turn, max_uttr_len])
+        context_len = tf.reshape(tf.decode_raw(example["x_len"], tf.int32), [max_turn])
+        response = tf.reshape(tf.decode_raw(example["y"], tf.int32), [max_uttr_len])
+        source = tf.decode_raw(example["source"], tf.string)
+        target = tf.decode_raw(example["target"], tf.string)
+        return context, context_len, response, source, target
+    return parse_example
+
+
+def gen_batch_dataset(record_file, parse_example, buffer_size, batch_size, num_threads, is_training=False):
+    """
+    generate dataset to train model
+
+    Args:
+        record_file: str file path of record
+        parse_example: func parse each exampel in record
+        buffer_size: int size of buffer
+        batch_size: int size of batch
+        num_threads: int number of threads
+    Returns:
+        dataset: TFRecordDataset batch of dataset
+    """
+    num_threads = tf.constant(num_threads, dtype=tf.int32)
+    if is_training:
+        dataset = tf.data.TFRecordDataset(record_file).map(parse_example, 
+                    num_parallel_calls=num_threads).shuffle(buffer_size).repeat().batch(batch_size)
+    else:
+        dataset = tf.data.TFRecordDataset(record_file).map(parse_example, 
+                    num_parallel_calls=num_threads).repeat(1).batch(batch_size)
+    return dataset
 
 
 if __name__ == "__main__":
-    test()
+    gen_tf_records('./corpora/train.tfrecords', 'train')
+    # gen_tf_records('./corpora/dev.tfrecords', 'dev')
+    gen_tf_records('./corpora/test.tfrecords', 'test')

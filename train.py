@@ -146,7 +146,7 @@ class Graph():
                 
             # Final linear projection
             self.logits = tf.layers.dense(self.dec, len(en2idx))
-            self.preds = tf.to_int32(tf.argmax(self.logits, dimension=-1))
+            self.preds = tf.to_int32(tf.arg_max(self.logits, dimension=-1))
             self.istarget = tf.to_float(tf.not_equal(self.y, 0))
             self.acc = tf.reduce_sum(tf.to_float(tf.equal(self.preds, self.y)) * self.istarget) / (tf.reduce_sum(self.istarget))
             tf.summary.scalar('acc', self.acc)
@@ -198,7 +198,6 @@ if __name__ == '__main__':
             
             for step in tqdm(range(g.num_batch), total=g.num_batch, ncols=70, leave=False, unit='b'):
                 _, loss_step, attns, sources, targets = sess.run([g.train_op, g.mean_loss, g.attn, g.source, g.target])
-                print("train loss:%.5lf\n"%(loss_step))
                 loss.append(loss_step)
                 
                 if step % 2000==0:

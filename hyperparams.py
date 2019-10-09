@@ -28,7 +28,7 @@ class Hyperparams:
     num_epochs = 500
     num_heads = 8
     dropout_rate = 0.1
-    sinusoid = False # If True, use sinusoid. If false, positional embedding.
+    sinusoid = True # If True, use sinusoid. If false, positional embedding.
     
     num_layers=1
     max_turn=15
