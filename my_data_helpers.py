@@ -12,8 +12,8 @@ import tensorflow as tf
 from gensim.models.word2vec import LineSentence
 from gensim.models import word2vec
 
-import hyperparameters as hp
-from utils import trans_sen2idx, Log
+import my_hyparams as hp
+from my_utils import trans_sen2idx, Log
 
 
 def get_vocab_size(vocab_path):
@@ -127,8 +127,8 @@ def pad(context_list, response_list, word2idx, max_turn=hp.max_turn, max_uttr_le
         context_sen_idx_list = []
         # truncate idx list
         for context_sen in context_sen_list:
-            context_sen_idx_list.append(trans_sen2idx(context_sen + "</s>", word2idx)[:max_uttr_len])
-        res_sen_idx_list = trans_sen2idx(response + "</s>", word2idx)[:max_uttr_len]
+            context_sen_idx_list.append(trans_sen2idx(context_sen + " </s>", word2idx)[-max_uttr_len:])
+        res_sen_idx_list = trans_sen2idx(response + " </s>", word2idx)[-max_uttr_len:]
         context_idx_list.append(context_sen_idx_list[:max_turn])
         res_idx_list.append(res_sen_idx_list)
 
@@ -306,14 +306,25 @@ def test():
 
 if __name__ == "__main__":
     # test()
-    word2idx_path = os.path.join(hp.ubuntu_data_path, 'word2idx.pkl')
-    gen_tf_records(os.path.join(hp.ubuntu_data_path, 'train_data.txt'), word2idx_path, 
-                    os.path.join(hp.ubuntu_data_path, 'train.tfrecords'))
-    gen_tf_records(os.path.join(hp.ubuntu_data_path, 'valid_data.txt'), word2idx_path, 
-                    os.path.join(hp.ubuntu_data_path, 'valid.tfrecords'))
-    gen_tf_records(os.path.join(hp.ubuntu_data_path, 'test_data.txt'), word2idx_path, 
-                    os.path.join(hp.ubuntu_data_path, 'test.tfrecords'))
+    # word2idx_path = os.path.join(hp.ubuntu_data_path, 'word2idx.pkl')
+    # gen_tf_records(os.path.join(hp.ubuntu_data_path, 'train_data.txt'), word2idx_path, 
+    #                 os.path.join(hp.ubuntu_data_path, 'train.tfrecords'))
+    # gen_tf_records(os.path.join(hp.ubuntu_data_path, 'valid_data.txt'), word2idx_path, 
+    #                 os.path.join(hp.ubuntu_data_path, 'valid.tfrecords'))
+    # gen_tf_records(os.path.join(hp.ubuntu_data_path, 'test_data.txt'), word2idx_path, 
+    #                 os.path.join(hp.ubuntu_data_path, 'test.tfrecords'))
     # corpus_path = os.path.join(hp.ubuntu_data_path, 'train_clean.txt')
     # vocab_path = os.path.join(hp.ubuntu_data_path, 'vocab.txt')
     # word_vec_path = os.path.join(hp.ubuntu_data_path, 'w2v.pkl')
+    # gen_word2vec(corpus_path, vocab_path, word_vec_path)
+    word2idx_path = os.path.join(hp.jd_data_path, 'word2idx.pkl')
+    gen_tf_records(os.path.join(hp.jd_data_path, 'train_data.txt'), word2idx_path, 
+                    os.path.join(hp.jd_data_path, 'train.tfrecords'))
+    gen_tf_records(os.path.join(hp.jd_data_path, 'valid_data.txt'), word2idx_path, 
+                    os.path.join(hp.jd_data_path, 'valid.tfrecords'))
+    gen_tf_records(os.path.join(hp.jd_data_path, 'test_data.txt'), word2idx_path, 
+                    os.path.join(hp.jd_data_path, 'test.tfrecords'))
+    corpus_path = os.path.join(hp.jd_data_path, 'train_clean.txt')
+    vocab_path = os.path.join(hp.jd_data_path, 'vocab.txt')
+    # word_vec_path = os.path.join(hp.jd_data_path, 'w2v.pkl')
     # gen_word2vec(corpus_path, vocab_path, word_vec_path)

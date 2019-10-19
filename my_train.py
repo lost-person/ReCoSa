@@ -7,13 +7,14 @@
 import os
 
 import numpy as np
+import time
 import pickle
 import tensorflow as tf
 
-import hyperparameters as hp
-from data_helpers import get_record_parser, gen_batch_dataset, load_word2vec, get_vocab_size
-from model import Model
-from utils import get_args, trans_idx2sen, cal_bleu, save_tgt_pred_sens, Log
+import my_hyparams as hp
+from my_data_helpers import get_record_parser, gen_batch_dataset, load_word2vec, get_vocab_size
+from my_model import Model
+from my_utils import get_args, trans_idx2sen, cal_bleu, save_tgt_pred_sens, Log
 
 
 def load_tfrecord(record_file, FLAGS, is_training):
@@ -104,7 +105,7 @@ def train_model(train_record_file, valid_record_file, vocab_path, pre_word2vec_p
         optimizer = tf.train.AdamOptimizer(lr_rate, beta1=0.9, beta2=0.98, epsilon=1e-8)
         train_op = optimizer.minimize(model.batch_avg_loss, global_step=global_step)
 
-        saver = tf.train.Saver(max_to_keep=3)
+        saver = tf.train.Saver(max_to_keep=5)
         
         # init model
         if FLAGS.reload_model:
@@ -249,4 +250,5 @@ if __name__ == "__main__":
     vocab_path = os.path.join(FLAGS.dataset_path, 'vocab.txt')
     pre_word2vec_path = os.path.join(FLAGS.dataset_path, 'w2v.pkl')
     idx2word_path = os.path.join(FLAGS.dataset_path, 'idx2word.pkl')
-    train_model(train_record_file, valid_record_file, vocab_path, pre_word2vec_path, idx2word_path, FLAGS.res_path)
+    res_path = os.path.join(FLAGS.res_path, str(int(time.time())))
+    train_model(train_record_file, valid_record_file, vocab_path, pre_word2vec_path, idx2word_path, res_path)

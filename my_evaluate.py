@@ -9,11 +9,11 @@ import pickle
 import numpy as np
 import tensorflow as tf
 
-from data_helpers import get_record_parser, get_vocab_size, load_word2vec
-import hyperparameters as hp
-from model import Model
-from train import load_tfrecord
-from utils import get_args, trans_idx2sen, save_tgt_pred_sens, cal_bleu, Log
+from my_data_helpers import get_record_parser, get_vocab_size, load_word2vec
+import my_hyparams as hp
+from my_model import Model
+from my_train import load_tfrecord
+from my_utils import get_args, trans_idx2sen, save_tgt_pred_sens, cal_bleu, Log
 
 
 def evaluate(test_record_file, vocab_path, pre_word2vec_path, idx2word_path, res_path):
@@ -46,12 +46,23 @@ def evaluate(test_record_file, vocab_path, pre_word2vec_path, idx2word_path, res
         return
     
     ckpt_path = os.path.join(res_path, 'ckpt')
-    if not os.path.exists(res_path):
-        os.makedirs(res_path)
+    if not os.path.exists(ckpt_path):
+        return
+    
+    # find path of best model
+    ckpt = tf.train.get_checkpoint_state(ckpt_path)
+    best_ckpt_path = ''
+    for all_model_ckpt_path in ckpt.all_model_checkpoint_paths:
+        if all_model_ckpt_path.find('best') != 0:
+            best_ckpt_path = all_model_ckpt_path
+            break
+    
+    if not best_ckpt_path:
+        return
 
     pred_path = os.path.join(res_path, 'pred')
     if not os.path.exists(pred_path):
-        os.makedirs(pred_path)
+        return
 
     session_conf = tf.ConfigProto(
                 allow_soft_placement=FLAGS.allow_soft_placement,
@@ -67,8 +78,8 @@ def evaluate(test_record_file, vocab_path, pre_word2vec_path, idx2word_path, res
         model = Model(test_iterator, vocab_size, pre_word2vec, FLAGS)
         global_step = tf.Variable(0, name="global_step", trainable=False)
         saver = tf.train.Saver()
-        Log.info("load model start: ckpt_path = {}".format(ckpt_path))
-        saver.restore(sess, tf.train.latest_checkpoint(ckpt_path))
+        Log.info("load model start: best_ckpt_path = {}".format(best_ckpt_path))
+        saver.restore(sess, best_ckpt_path)
         Log.info("load model success")
 
         def dev_step():

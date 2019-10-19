@@ -7,7 +7,7 @@
 import tensorflow as tf
 
 from modules import *
-from utils import Log
+from my_utils import Log
 
 class Model():
     """
@@ -53,20 +53,6 @@ class Model():
                 sequence_length=self.seq_len, dtype=tf.float32, swap_memory=True)
             self.enc = tf.reshape(self.uttn_states, [-1, FLAGS.max_turn, FLAGS.hidden_dim])
 
-            # # bi-gru
-            # fw_gru_cell = tf.nn.rnn_cell.GRUCell(FLAGS.hidden_dim)
-            # bw_gru_cell = tf.nn.rnn_cell.GRUCell(FLAGS.hidden_dim)
-
-            # ((fw_outpus, bw_outputs), (fw_state, bw_state)) = tf.nn.bidirectional_dynamic_rnn(
-            #     fw_gru_cell, bw_gru_cell, self.context_embedding, self.seq_len, dtype=tf.float32)
-            
-            # # concatenation
-            # self.enc = tf.concat((fw_outpus, bw_outputs), 2)
-            # self.enc = tf.reshape(self.enc, [FLAGS.batch_size, FLAGS.max_turn, FLAGS.hidden_dim])
-
-            # position embedding and dropout
-            # self.enc += positional_encoding(self.context, num_units=FLAGS.hidden_dim, zero_pad=False, 
-            #                           scale=False, scope="enc_pe")
             self.enc += embedding(tf.tile(tf.expand_dims(tf.range(tf.shape(self.context)[1]), 0), [tf.shape(self.context)[0], 1]),
                                       vocab_size=FLAGS.max_uttr_len, 
                                       num_units=FLAGS.hidden_dim, 

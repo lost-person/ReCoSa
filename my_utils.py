@@ -8,7 +8,7 @@ import numpy as np
 import tensorflow as tf
 from nltk.translate import bleu_score
 
-import hyperparameters as hp
+import my_hyparams as hp
 
 
 def get_log(log_conf):
@@ -34,7 +34,7 @@ def trans_sen2idx(seq, word2idx):
     Returns:
         seq_idx_list: list list of index
     """
-    idx_list = [word2idx.get(word, 1) for word in (seq + " </s>").split()] # 1: oov, </s>: end of sentence
+    idx_list = [word2idx.get(word, 1) for word in seq.split()]
     return idx_list
 
 
@@ -60,8 +60,10 @@ def get_args():
         FLAGS: tf.flags used in train.py
     """
 
-    tf.flags.DEFINE_string('dataset_path', hp.ubuntu_data_path, 'Path to dataset(default ubuntu dataset).')
-    tf.flags.DEFINE_string('res_path', hp.ubuntu_res_path, 'Path to results')
+    # tf.flags.DEFINE_string('dataset_path', hp.ubuntu_data_path, 'Path to dataset(default ubuntu dataset).')
+    # tf.flags.DEFINE_string('res_path', hp.ubuntu_res_path, 'Path to results')
+    tf.flags.DEFINE_string('dataset_path', hp.jd_data_path, 'Path to dataset(default jd dataset).')
+    tf.flags.DEFINE_string('res_path', hp.jd_res_path, 'Path to results')
     tf.flags.DEFINE_boolean('reload_model', False, 'Reload model')
     tf.flags.DEFINE_boolean('is_training', True, 'Must be one of train/eval/decode')
     tf.flags.DEFINE_integer('num_threads', hp.num_threads, 'Number of threads')
