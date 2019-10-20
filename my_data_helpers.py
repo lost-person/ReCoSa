@@ -300,31 +300,15 @@ def gen_batch_dataset(record_file, parse_example, buffer_size, batch_size, num_t
                     num_parallel_calls=num_threads).repeat(1).batch(batch_size)
     return dataset
 
-
-def test():
-    pass
-
 if __name__ == "__main__":
-    # test()
-    # word2idx_path = os.path.join(hp.ubuntu_data_path, 'word2idx.pkl')
-    # gen_tf_records(os.path.join(hp.ubuntu_data_path, 'train_data.txt'), word2idx_path, 
-    #                 os.path.join(hp.ubuntu_data_path, 'train.tfrecords'))
-    # gen_tf_records(os.path.join(hp.ubuntu_data_path, 'valid_data.txt'), word2idx_path, 
-    #                 os.path.join(hp.ubuntu_data_path, 'valid.tfrecords'))
-    # gen_tf_records(os.path.join(hp.ubuntu_data_path, 'test_data.txt'), word2idx_path, 
-    #                 os.path.join(hp.ubuntu_data_path, 'test.tfrecords'))
-    # corpus_path = os.path.join(hp.ubuntu_data_path, 'train_clean.txt')
-    # vocab_path = os.path.join(hp.ubuntu_data_path, 'vocab.txt')
-    # word_vec_path = os.path.join(hp.ubuntu_data_path, 'w2v.pkl')
-    # gen_word2vec(corpus_path, vocab_path, word_vec_path)
-    word2idx_path = os.path.join(hp.jd_data_path, 'word2idx.pkl')
-    gen_tf_records(os.path.join(hp.jd_data_path, 'train_data.txt'), word2idx_path, 
-                    os.path.join(hp.jd_data_path, 'train.tfrecords'))
-    gen_tf_records(os.path.join(hp.jd_data_path, 'valid_data.txt'), word2idx_path, 
-                    os.path.join(hp.jd_data_path, 'valid.tfrecords'))
-    gen_tf_records(os.path.join(hp.jd_data_path, 'test_data.txt'), word2idx_path, 
-                    os.path.join(hp.jd_data_path, 'test.tfrecords'))
-    corpus_path = os.path.join(hp.jd_data_path, 'train_clean.txt')
-    vocab_path = os.path.join(hp.jd_data_path, 'vocab.txt')
-    # word_vec_path = os.path.join(hp.jd_data_path, 'w2v.pkl')
+    word2idx_path = os.path.join(hp.data_path, 'word2idx.pkl')
+    gen_tf_records(os.path.join(hp.data_path, 'train_data.txt'), word2idx_path, 
+                    os.path.join(hp.data_path, 'train.tfrecords'))
+    gen_tf_records(os.path.join(hp.data_path, 'valid_data.txt'), word2idx_path, 
+                    os.path.join(hp.data_path, 'valid.tfrecords'))
+    gen_tf_records(os.path.join(hp.data_path, 'test_data.txt'), word2idx_path, 
+                    os.path.join(hp.data_path, 'test.tfrecords'))
+    corpus_path = os.path.join(hp.data_path, 'train_clean.txt')
+    vocab_path = os.path.join(hp.data_path, 'vocab.txt')
+    # word_vec_path = os.path.join(hp.data_path, 'w2v.pkl')
     # gen_word2vec(corpus_path, vocab_path, word_vec_path)

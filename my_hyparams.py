@@ -6,17 +6,20 @@ hyperparameters of model
 
 import os
 
-data_path = './data/' # data path
-res_path = './res/' # results path
-ubuntu_data_path = os.path.join('./data/', 'ubuntu_data') # ubuntu data path
-ubuntu_res_path = os.path.join('./res/', 'ubuntu_data') # ubuntu data path
-jd_data_path = os.path.join('./data/', 'jd') # ubuntu data path
-jd_res_path = os.path.join('./res/', 'jd') # ubuntu data path
+data_prefix = 'ubuntu_data'
+if data_prefix == 'ubuntu_data':
+    data_path = os.path.join('data', 'ubuntu_data') # ubuntu data path
+    res_path = os.path.join('res', 'ubuntu_data') # ubuntu data path
+elif data_prefix == 'jd':
+    data_path = os.path.join('data', 'jd') # jd data path
+    res_path = os.path.join('res', 'jd') # jd data path
+else:
+    data_path = os.path.join('data', 'cornel_movies') # jd data path
+    res_path = os.path.join('res', 'cornel_movies') # jd data path
 log_conf = './log.ini' # file path of log config
 
 num_threads = 4 # number of threads 
 
-max_vocab_size = 500000 # maximum number of vocabulary
 max_turn = 10 # maximum number of turns
 max_uttr_len = 30 # maximum number of words in an utterance
 

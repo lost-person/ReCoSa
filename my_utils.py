@@ -60,10 +60,8 @@ def get_args():
         FLAGS: tf.flags used in train.py
     """
 
-    # tf.flags.DEFINE_string('dataset_path', hp.ubuntu_data_path, 'Path to dataset(default ubuntu dataset).')
-    # tf.flags.DEFINE_string('res_path', hp.ubuntu_res_path, 'Path to results')
-    tf.flags.DEFINE_string('dataset_path', hp.jd_data_path, 'Path to dataset(default jd dataset).')
-    tf.flags.DEFINE_string('res_path', hp.jd_res_path, 'Path to results')
+    tf.flags.DEFINE_string('dataset_path', hp.data_path, 'Path to dataset(default jd dataset).')
+    tf.flags.DEFINE_string('res_path', hp.res_path, 'Path to results')
     tf.flags.DEFINE_boolean('reload_model', False, 'Reload model')
     tf.flags.DEFINE_boolean('is_training', True, 'Must be one of train/eval/decode')
     tf.flags.DEFINE_integer('num_threads', hp.num_threads, 'Number of threads')
@@ -71,7 +69,6 @@ def get_args():
     # model parameters
     tf.flags.DEFINE_integer("num_blocks", hp.num_blocks, "Number of stacked blocks")
     tf.flags.DEFINE_integer("num_heads", hp.num_heads, "Number of attention heads")
-    tf.flags.DEFINE_integer("vocab_size", hp.max_vocab_size, "Size of vocabulary")
     tf.flags.DEFINE_integer("max_turn", hp.max_turn, "Max number of turn")
     tf.flags.DEFINE_integer("max_uttr_len", hp.max_uttr_len, "Max number of word") 
 

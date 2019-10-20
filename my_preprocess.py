@@ -92,7 +92,8 @@ def gen_idx2word_from_vocab(vocab_path, idx2word_path):
 
 
 if __name__ == "__main__":
-    vocab_path = os.path.join(hp.jd_data_path, 'vocab.txt')
-    gen_vocab(os.path.join(hp.jd_data_path, 'train_data.txt'), vocab_path, True)
-    gen_word2idx_from_vocab(os.path.join(hp.jd_data_path, 'vocab.txt'), os.path.join(hp.jd_data_path, 'word2idx.pkl'))
-    gen_idx2word_from_vocab(os.path.join(hp.jd_data_path, 'vocab.txt'), os.path.join(hp.jd_data_path, 'idx2word.pkl'))
+    vocab_path = os.path.join(hp.data_path, 'vocab.txt')
+    if hp.data_path.find("ubuntu") == -1:
+        gen_vocab(os.path.join(hp.data_path, 'train_data.txt'), vocab_path, True)
+    gen_word2idx_from_vocab(os.path.join(hp.data_path, 'vocab.txt'), os.path.join(hp.data_path, 'word2idx.pkl'))
+    gen_idx2word_from_vocab(os.path.join(hp.data_path, 'vocab.txt'), os.path.join(hp.data_path, 'idx2word.pkl'))
