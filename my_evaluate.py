@@ -6,6 +6,7 @@ evaluate model
 
 import os
 import pickle
+import time
 import numpy as np
 import tensorflow as tf
 
@@ -46,19 +47,13 @@ def evaluate(test_record_file, vocab_path, pre_word2vec_path, idx2word_path, res
         return
     
     ckpt_path = os.path.join(res_path, 'ckpt')
-    if not os.path.exists(ckpt_path):
-        return
-    
     # find path of best model
-    ckpt = tf.train.get_checkpoint_state(ckpt_path)
-    best_ckpt_path = ''
-    for all_model_ckpt_path in ckpt.all_model_checkpoint_paths:
+    ckpt_state = tf.train.get_checkpoint_state(ckpt_path)
+    best_ckpt_path = ckpt_state.all_model_checkpoint_paths[-1]
+    for all_model_ckpt_path in ckpt_state.all_model_checkpoint_paths:
         if all_model_ckpt_path.find('best') != 0:
             best_ckpt_path = all_model_ckpt_path
             break
-    
-    if not best_ckpt_path:
-        return
 
     pred_path = os.path.join(res_path, 'pred')
     if not os.path.exists(pred_path):
@@ -88,8 +83,11 @@ def evaluate(test_record_file, vocab_path, pre_word2vec_path, idx2word_path, res
             """
             sess.run(test_iterator.initializer)
             test_handle = sess.run(test_iterator.string_handle())
+            loss_list = []
+            ppl_list = []
             target_list = []
             pred_idx_list = []
+            acc = []
 
             while True:
                 try:
@@ -97,25 +95,32 @@ def evaluate(test_record_file, vocab_path, pre_word2vec_path, idx2word_path, res
                         handle: test_handle,
                         model.dropout_rate: 0.0
                     }
-                    step, target, preds = sess.run([global_step, model.target, model.preds], feed_dict)
+                    _, batch_avg_loss, ppl, batch_avg_acc, target, preds = sess.run([global_step, model.batch_avg_loss, 
+                        model.ppl, model.batch_avg_acc, model.target, model.preds], feed_dict)
                     
                     target_list.extend(target)
                     pred_idx_list.extend(preds)
+                    loss_list.append(batch_avg_loss)
+                    ppl_list.append(ppl)
+                    acc.append(batch_avg_acc)
                     
                 except tf.errors.OutOfRangeError:
                     break
-
+            
             target_list = [target.decode() for target in target_list]
             idx2word = pickle.load(open(idx2word_path, 'rb'))
             pred_list = [" ".join(trans_idx2sen(pred_idx_list[i], idx2word)).split("</s>", 1)[0].strip() + "\n" 
-                for i in range(len(pred_idx_list))]
+                for i in range(len(pred_idx_list))]    
+            mean_loss = np.mean(loss_list)
+            mean_ppl = np.mean(ppl_list)
+            mean_acc = np.mean(acc)
             bleu_score = cal_bleu(target_list, pred_list)
-            Log.info("bleu score: {:3f}".format(bleu_score))
-
-            return target_list, pred_list
-
-        target_list, pred_list = dev_step()
-        save_tgt_pred_sens(os.path.join(pred_path, 'test_tgt_pred.txt'), target_list, pred_list)
+            save_tgt_pred_sens(os.path.join(pred_path, 'test_tgt_pred.txt'), target_list, pred_list)
+            Log.info("==================================")
+            Log.info("loss: {:.3f} \t| bleu: {:.3f}\t| ppl: {:3f}".format(mean_loss, bleu_score, mean_ppl))
+            Log.info("==================================")
+        
+        dev_step()
 
 
 if __name__ == "__main__":
@@ -128,4 +133,5 @@ if __name__ == "__main__":
     vocab_path = os.path.join(FLAGS.dataset_path, 'vocab.txt')
     pre_word2vec_path = os.path.join(FLAGS.dataset_path, 'w2v.pkl')
     idx2word_path = os.path.join(FLAGS.dataset_path, 'idx2word.pkl')
-    evaluate(test_record_file, vocab_path, pre_word2vec_path, idx2word_path, FLAGS.res_path)
+    res_path = os.path.join(FLAGS.res_path, '1571573645')
+    evaluate(test_record_file, vocab_path, pre_word2vec_path, idx2word_path, res_path)

@@ -6,7 +6,7 @@ hyperparameters of model
 
 import os
 
-data_prefix = 'ubuntu_data'
+data_prefix = 'jd'
 if data_prefix == 'ubuntu_data':
     data_path = os.path.join('data', 'ubuntu_data') # ubuntu data path
     res_path = os.path.join('res', 'ubuntu_data') # ubuntu data path
