@@ -105,7 +105,7 @@ def train_model(train_record_file, valid_record_file, vocab_path, pre_word2vec_p
         optimizer = tf.train.AdamOptimizer(lr_rate, beta1=0.9, beta2=0.98, epsilon=1e-8)
         train_op = optimizer.minimize(model.batch_avg_loss, global_step=global_step)
 
-        saver = tf.train.Saver(max_to_keep=5)
+        saver = tf.train.Saver(max_to_keep=3)
         
         # init model
         if FLAGS.reload_model:
@@ -157,7 +157,8 @@ def train_model(train_record_file, valid_record_file, vocab_path, pre_word2vec_p
             sess.run(valid_iterator.initializer)
             valid_handle = sess.run(valid_iterator.string_handle())
             
-            loss = []
+            loss_list = []
+            ppl_list = []
             target_list = []
             pred_idx_list = []
             acc = []
@@ -168,12 +169,13 @@ def train_model(train_record_file, valid_record_file, vocab_path, pre_word2vec_p
                         handle: valid_handle,
                         model.dropout_rate: 0.0
                     }
-                    step, batch_avg_loss, batch_avg_acc, target, preds = sess.run([global_step, model.batch_avg_loss, 
-                        model.batch_avg_acc, model.target, model.preds], feed_dict)
+                    step, batch_avg_loss, ppl, batch_avg_acc, target, preds = sess.run([global_step, model.batch_avg_loss, 
+                        model.ppl, model.batch_avg_acc, model.target, model.preds], feed_dict)
                     
                     target_list.extend(target)
                     pred_idx_list.extend(preds)
-                    loss.append(batch_avg_loss)
+                    loss_list.append(batch_avg_loss)
+                    ppl_list.append(ppl)
                     acc.append(batch_avg_acc)
                     
                 except tf.errors.OutOfRangeError:
@@ -183,11 +185,13 @@ def train_model(train_record_file, valid_record_file, vocab_path, pre_word2vec_p
             idx2word = pickle.load(open(idx2word_path, 'rb'))
             pred_list = [" ".join(trans_idx2sen(pred_idx_list[i], idx2word)).split("</s>", 1)[0].strip() + "\n" 
                 for i in range(len(pred_idx_list))]    
-            mean_loss = np.mean(loss)
+            mean_loss = np.mean(loss_list)
+            mean_ppl = np.mean(ppl_list)
             mean_acc = np.mean(acc)
             bleu_score = cal_bleu(target_list, pred_list)
             Log.info("==================================")
-            Log.info("Eval Step: {:d} \t| loss: {:.3f} | bleu: {:.3f}\t".format(step, mean_loss, bleu_score))
+            Log.info("Eval Step: {:d} \t| loss: {:.3f} \t| bleu: {:.3f}\t| ppl: {:3f}".format(
+                step, mean_loss, bleu_score, mean_ppl))
             Log.info("==================================")
             
             summary_MeanLoss = tf.Summary(value=[tf.Summary.Value(tag="{}/mean_acc".format('dev'), 
@@ -212,10 +216,6 @@ def train_model(train_record_file, valid_record_file, vocab_path, pre_word2vec_p
             if current_step % FLAGS.eval_step == 0:
                 Log.info("evaluate model start!")
                 mean_loss, mean_score, target_list, pred_list = dev_step()
-                save_tgt_pred_sens(os.path.join(pred_path, 'tgt_pred.txt'), target_list, pred_list)
-                Log.info("save newest model start: model path = {}".format(model_path))
-                saver.save(sess, os.path.join(ckpt_path, 'model'), global_step=current_step)
-                Log.info("save newest model success!")
             
                 # early stop
                 if mean_loss > optimal_loss:
@@ -229,9 +229,9 @@ def train_model(train_record_file, valid_record_file, vocab_path, pre_word2vec_p
                 # restore model
                 if mean_score > optimal_score:
                     optimal_score = mean_score
-                    save_tgt_pred_sens(os.path.join(pred_path, 'best_tgt_pred.txt'), target_list, pred_list)
+                    save_tgt_pred_sens(os.path.join(pred_path, 'tgt_pred.txt'), target_list, pred_list)
                     Log.info("update best model start: model path = {}".format(model_path))
-                    saver.save(sess, os.path.join(ckpt_path, 'best_model'), global_step=current_step)
+                    saver.save(sess, os.path.join(ckpt_path, 'model'), global_step=current_step)
                     Log.info("update model success!")
                 Log.info("evaluate model success!")
         

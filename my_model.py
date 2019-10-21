@@ -118,7 +118,7 @@ class Model():
             self.res_smoothed = label_smoothing(tf.one_hot(self.response, depth=vocab_size))
             self.loss = tf.nn.softmax_cross_entropy_with_logits_v2(labels=self.res_smoothed, logits=self.logits)
             self.batch_avg_loss = tf.reduce_sum(self.loss * self.istarget) / (tf.reduce_sum(self.istarget))
-
+            self.ppl = tf.exp(self.batch_avg_loss)
 
 if __name__ == "__main__":
     pass
