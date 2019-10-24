@@ -16,82 +16,6 @@ import hyparams as hp
 from utils import trans_sen2idx, Log
 
 
-def get_vocab_size(vocab_path):
-    """
-    get the size of vocabulary
-
-    Args:
-        vocab_path: str path of vocabulary
-    Return:
-        vocab_size: int size of vocabulary
-    """
-    if not os.path.exists(vocab_path):
-        Log.info("no data file exists: vocab_path = {}".format(vocab_path))
-        return None
-
-    with open(vocab_path, 'r', encoding='utf-8') as f:
-        vocab_size = len(f.readlines())
-    
-    return vocab_size
-
-
-def gen_word2vec(corpus_path, vocab_path, word2vec_path, embedding_size=hp.embedding_size):
-    """
-    pretrain and save word embedding
-
-    Args:
-        corpus_path: str path of corpus which is used to pretrain word embedding
-        vocab_path: str path of vocabulary
-        word2vec_path: str path of word embedding   
-    """
-    if not (os.path.exists(corpus_path) and os.path.exists(vocab_path)):
-        Log.info("no data file exists: corpus_path = {}".format(corpus_path))
-        return
-
-    Log.info("pretrain word embedding start: corpus_path = {}, vec_path = {}, embedding_szie = {}".format(
-        corpus_path, word2vec_path, embedding_size))
-    sents = LineSentence(corpus_path)
-    model = word2vec.Word2Vec(sents, size=embedding_size)
-    
-    zero_vec = list(np.zeros(embedding_size, dtype=float))
-    word_vec = [zero_vec for _ in range(4)]
-    
-    with open(vocab_path, 'r', encoding='utf-8') as f:
-        line_list = f.readlines()
-    
-    vocab = [line.split("\t")[0] for line in line_list]
-
-    for word in vocab:
-        if word in model.wv.vocab:
-            word_vec.append(model[word])
-        else:
-            word_vec.append(zero_vec)
-
-    with open(word2vec_path, "wb") as f:
-        pickle.dump(word_vec, f)
-    Log.info("pretrain word embedding success!")
-
-
-def load_word2vec(word2vec_path):
-    """
-    load word embedding
-
-    Args:
-        wordvec_path: str file path of wordvec
-    Returns:
-        pre_word_vec: Word2Vec pretrianed word embedding
-    """
-    if not os.path.exists(word2vec_path):
-        Log.info("no data file exists: word2vec_path = {}".format(word2vec_path))
-        return None
-    
-    Log.info("load pretrained word embedding start: word2vec_path = {}".format(word2vec_path))
-    with open(word2vec_path, 'rb') as f:
-        pre_word_vec = pickle.load(word2vec_path)
-    Log.info("load pretrained word embedding success!")
-    return pre_word_vec
-
-
 def pad(context_list, response_list, word2idx, max_turn=hp.max_turn, max_uttr_len=hp.max_uttr_len):
     """
     pad each sequence(context and response) to the same length
@@ -308,7 +232,3 @@ if __name__ == "__main__":
                     os.path.join(hp.data_path, 'valid.tfrecords'))
     gen_tf_records(os.path.join(hp.data_path, 'test_data.txt'), word2idx_path, 
                     os.path.join(hp.data_path, 'test.tfrecords'))
-    corpus_path = os.path.join(hp.data_path, 'train_clean.txt')
-    vocab_path = os.path.join(hp.data_path, 'vocab.txt')
-    # word_vec_path = os.path.join(hp.data_path, 'w2v.pkl')
-    # gen_word2vec(corpus_path, vocab_path, word_vec_path)

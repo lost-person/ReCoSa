@@ -12,9 +12,11 @@ import pickle
 import tensorflow as tf
 
 import hyparams as hp
-from data_helpers import get_record_parser, gen_batch_dataset, load_word2vec, get_vocab_size
+from data_helpers import get_record_parser, gen_batch_dataset
 from model import Model
-from utils import get_args, trans_idx2sen, cal_bleu, save_tgt_pred_sens, Log
+from utils import get_vocab_size, get_args, trans_idx2sen, Log
+from metrics import cal_bleu, save_tgt_pred_sens, cal_distinct, embed_metrics
+from pretrain_models import load_word2vec
 
 
 def load_tfrecord(record_file, FLAGS, is_training):
@@ -40,15 +42,16 @@ def load_tfrecord(record_file, FLAGS, is_training):
     return dataset
 
 
-def train_model(train_record_file, valid_record_file, vocab_path, pre_word2vec_path, idx2word_path, res_path):
+def train_model(train_record_file, valid_record_file, vocab_path, word2vec_path, idx2word_path, res_path):
     """
     train model
 
     Args:
         train_record_file: str file path of train tf.recordfile
         valid_record_file: str file path of valid tf.recordfile
-        pre_word_vec: tensor pretrained word embedding
-        vocab_size: int size of vocabulary
+        vocab_path: str file path of vocabulary
+        word2vec_path: str file path of word embedding
+        idx2word_path: str file path of idx -> word
         res_path: str file path of model's results
     """
     # create path that restore results of model
@@ -69,10 +72,9 @@ def train_model(train_record_file, valid_record_file, vocab_path, pre_word2vec_p
         Log.info("get vocab_size err: vocab_path = {}".format(vocab_path))
         return
     
-    if FLAGS.use_pre_wordvec:
-        pre_word2vec = load_word2vec(pre_word2vec_path)
-    else:
-        pre_word2vec = None
+    if not os.path.exists(word2vec_path):
+        return
+    word_embed = load_word2vec(word2vec_path)
 
     # load data
     Log.info("load train and valid dataset start!")
@@ -97,7 +99,7 @@ def train_model(train_record_file, valid_record_file, vocab_path, pre_word2vec_p
         train_handle = sess.run(train_iterator.string_handle())
         
         Log.info("build model start!")
-        model = Model(iterator, vocab_size, pre_word2vec, FLAGS)
+        model = Model(iterator, vocab_size, None, FLAGS)
         Log.info("build model success!")
         
         global_step = tf.Variable(0, name="global_step", trainable=False)
@@ -160,6 +162,7 @@ def train_model(train_record_file, valid_record_file, vocab_path, pre_word2vec_p
             loss_list = []
             ppl_list = []
             target_list = []
+            res_idx_list = []
             pred_idx_list = []
             acc = []
 
@@ -169,10 +172,11 @@ def train_model(train_record_file, valid_record_file, vocab_path, pre_word2vec_p
                         handle: valid_handle,
                         model.dropout_rate: 0.0
                     }
-                    step, batch_avg_loss, ppl, batch_avg_acc, target, preds = sess.run([global_step, model.batch_avg_loss, 
-                        model.ppl, model.batch_avg_acc, model.target, model.preds], feed_dict)
-                    
+                    step, batch_avg_loss, ppl, batch_avg_acc, target, res, preds = sess.run([global_step, model.batch_avg_loss, 
+                        model.ppl, model.batch_avg_acc, model.target, model.response, model.preds], feed_dict)
+
                     target_list.extend(target)
+                    res_idx_list.extend(res)
                     pred_idx_list.extend(preds)
                     loss_list.append(batch_avg_loss)
                     ppl_list.append(ppl)
@@ -189,10 +193,15 @@ def train_model(train_record_file, valid_record_file, vocab_path, pre_word2vec_p
             mean_ppl = np.mean(ppl_list)
             mean_acc = np.mean(acc)
             bleu_score = cal_bleu(target_list, pred_list)
-            Log.info("==================================")
-            Log.info("Eval Step: {:d} \t| loss: {:.3f} \t| bleu: {:.3f}\t| ppl: {:3f}".format(
-                step, mean_loss, bleu_score, mean_ppl))
-            Log.info("==================================")
+            save_tgt_pred_sens(os.path.join(pred_path, 'test_tgt_pred.txt'), target_list, pred_list)
+            dist1 = cal_distinct(pred_list)
+            dist2 = cal_distinct(pred_list, 2)
+            greedy_match, embed_avg, vec_extrema = embed_metrics(res_idx_list, pred_idx_list, word_embed)
+            Log.info("=" * 40)
+            Log.info("loss: {:.3f} \t| bleu: {:.3f}\t| ppl: {:.3f} \t| dist_1 = {:.3f}, dist_2 = {:.3f} \t|"
+                    "greedy_match = {:.3f}, embed_avg = {:.3f}, vec_extrema = {:.3f}".format(mean_loss, bleu_score, 
+                    mean_ppl, dist1, dist2, greedy_match, embed_avg, vec_extrema))
+            Log.info("=" * 40)
             
             summary_MeanLoss = tf.Summary(value=[tf.Summary.Value(tag="{}/mean_acc".format('dev'), 
                                         simple_value=np.mean(mean_acc))])

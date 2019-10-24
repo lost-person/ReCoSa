@@ -4,9 +4,7 @@ import logging.config
 import os
 import pickle
 
-import numpy as np
 import tensorflow as tf
-from nltk.translate import bleu_score
 
 import hyparams as hp
 
@@ -34,7 +32,7 @@ def trans_sen2idx(seq, word2idx):
     Returns:
         seq_idx_list: list list of index
     """
-    idx_list = [word2idx.get(word, 1) for word in seq.split()]
+    idx_list = [word2idx.get(word, 1) for word in seq.split(' ')]
     return idx_list
 
 
@@ -52,6 +50,25 @@ def trans_idx2sen(idx_list, idx2word):
     return seq
 
 
+def get_vocab_size(vocab_path):
+    """
+    get the size of vocabulary
+
+    Args:
+        vocab_path: str path of vocabulary
+    Return:
+        vocab_size: int size of vocabulary
+    """
+    if not os.path.exists(vocab_path):
+        Log.info("no data file exists: vocab_path = {}".format(vocab_path))
+        return None
+
+    with open(vocab_path, 'r', encoding='utf-8') as f:
+        vocab_size = len(f.readlines())
+    
+    return vocab_size
+
+
 def get_args():
     """
     get the arguments of train.py
@@ -60,7 +77,7 @@ def get_args():
         FLAGS: tf.flags used in train.py
     """
 
-    tf.flags.DEFINE_string('dataset_path', hp.data_path, 'Path to dataset(default jd dataset).')
+    tf.flags.DEFINE_string('data_path', hp.data_path, 'Path to dataset(default ubuntu dataset).')
     tf.flags.DEFINE_string('res_path', hp.res_path, 'Path to results')
     tf.flags.DEFINE_boolean('reload_model', False, 'Reload model')
     tf.flags.DEFINE_boolean('is_training', True, 'Must be one of train/eval/decode')
@@ -93,40 +110,5 @@ def get_args():
 
     FLAGS = tf.flags.FLAGS
     return FLAGS
-
-def save_tgt_pred_sens(tgt_pred_path, target_list, pred_list):
-    """
-    存储预测的句子
-
-    Args:
-        tgt_pred_path: str 真实和预测结果的存储路径
-        target_list: list 真实结果列表
-        pred_idx_list: list 预测结果列表
-    """
-    Log.info("save tgt and pred start: tgt_pred_path = {}".format(tgt_pred_path))
-    with open(tgt_pred_path, 'w', encoding='utf-8') as f:
-        for target, pred in zip(target_list, pred_list):
-            f.write("- tgt: " + target + "\n")
-            f.write("- pred: " + pred + "\n")
-    Log.info("save tgt and pred success!")
-    
-
-def cal_bleu(target_list, pred_list):
-    """"
-    计算bleu得分
-
-    Args:
-        target_list: list 真实结果列表
-        pred_idx_list: list 预测结果列表
-    Returns:
-        bleu_score: float bleu得分
-    """
-    bleu_score_list = []
-    for res, preds in zip(target_list, pred_list):
-        score = bleu_score.sentence_bleu([res.split()], preds.split(), smoothing_function=bleu_score.SmoothingFunction().method1)
-        bleu_score_list.append(score)
-    
-    return 100 * np.mean(bleu_score_list)
-
 
 Log = get_log(hp.log_conf)

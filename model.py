@@ -35,7 +35,6 @@ class Model():
         
         # 2 -> <s>
         self.decoder_inputs = tf.concat((tf.ones_like(self.response[:, : 1]) * 2, self.response[:, : -1]), -1)
-        # self.word_embed = get_token_embeddings(vocab_size, FLAGS.embed_dim, pre_word2vec, FLAGS.use_pre_wordvec)
 
         # encoder
         with tf.variable_scope("encoder"):
@@ -77,10 +76,7 @@ class Model():
             
             self.dec = embedding(self.decoder_inputs, vocab_size=vocab_size, num_units=FLAGS.hidden_dim,
                                 scale=True,  scope="dec_embed")
-            # postion embedding and dropout
-            # self.dec += positional_encoding(self.decoder_inputs, vocab_size=FLAGS.max_uttr_len, 
-            #                                 num_units=FLAGS.hidden_dim, zero_pad=False, 
-            #                                 scale=False, scope="dec_pe")
+
             self.dec += embedding(tf.tile(tf.expand_dims(tf.range(tf.shape(self.decoder_inputs)[1]), 0), [tf.shape(self.decoder_inputs)[0], 1]),
                                       vocab_size=FLAGS.max_uttr_len, 
                                       num_units=FLAGS.hidden_dim, 
