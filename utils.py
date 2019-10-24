@@ -89,7 +89,6 @@ def get_args():
     tf.flags.DEFINE_integer("max_turn", hp.max_turn, "Max number of turn")
     tf.flags.DEFINE_integer("max_uttr_len", hp.max_uttr_len, "Max number of word") 
 
-    tf.flags.DEFINE_boolean("use_pre_wordvec", False, "use pretrianed wordvec")
     tf.flags.DEFINE_integer("embed_dim", hp.embedding_size, "Dimensionality of embedding")
     tf.flags.DEFINE_integer("hidden_dim", hp.hidden_units, "Dimensionality of rnn")
     tf.flags.DEFINE_float("dropout_rate", hp.drop_rate, "Dropout keep probability") 

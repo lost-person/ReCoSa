@@ -99,7 +99,7 @@ def train_model(train_record_file, valid_record_file, vocab_path, word2vec_path,
         train_handle = sess.run(train_iterator.string_handle())
         
         Log.info("build model start!")
-        model = Model(iterator, vocab_size, None, FLAGS)
+        model = Model(iterator, vocab_size, FLAGS)
         Log.info("build model success!")
         
         global_step = tf.Variable(0, name="global_step", trainable=False)

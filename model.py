@@ -14,7 +14,7 @@ class Model():
     A class that construct model
 
     """
-    def __init__(self, batch, vocab_size, pre_word2vec, FLAGS):
+    def __init__(self, batch, vocab_size, FLAGS):
         """
         initial the model
 
@@ -22,7 +22,6 @@ class Model():
             batch: tf.data
             vocab_size: int size of vocabulary
             FLAGS: tf.flags arguments
-            pre_word2vec: tensor pretrained word embedding
         """
         self.dropout_rate = tf.placeholder(tf.float32, name="dropout_rate")
         
