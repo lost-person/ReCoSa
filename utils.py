@@ -63,9 +63,11 @@ def get_vocab_size(vocab_path):
         Log.info("no data file exists: vocab_path = {}".format(vocab_path))
         return None
 
+    Log.info("get size of vocabulary start: vocab_path = {}".format(vocab_path))
     with open(vocab_path, 'r', encoding='utf-8') as f:
         vocab_size = len(f.readlines())
     
+    Log.info("get size of vocabulary success: size = {}".format(vocab_size))
     return vocab_size
 
 

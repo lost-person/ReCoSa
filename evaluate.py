@@ -19,14 +19,14 @@ from metrics import save_tgt_pred_sens, cal_bleu, cal_distinct, embed_metrics
 from pretrain_models import load_word2vec
 
 
-def evaluate(test_record_file, vocab_path, word2vec_path, idx2word_path, res_path):
+def evaluate(test_record_file, vocab_path, word_embed_path, idx2word_path, res_path):
     """
     evaluate model
 
     Args:
         test_record_file: str path of test tf.record
         vocab_path: str path of vocabulary
-        word2vec_path: str path of pretrianed word2vec
+        word_embed_path: str path of pretrianed word2vec
         idx2word_path: str path of index2word dictionary path
         res_path: str path of model results
     """
@@ -37,9 +37,9 @@ def evaluate(test_record_file, vocab_path, word2vec_path, idx2word_path, res_pat
         Log.info("get vocab_size err: vocab_path = {}".format(vocab_path))
         return
     
-    if not os.path.exists(word2vec_path):
+    if not os.path.exists(word_embed_path):
         return
-    word_embed = load_word2vec(word2vec_path)
+    word_embed = load_word2vec(word_embed_path)
 
     # load test dataset
     test_dataset = load_tfrecord(test_record_file, FLAGS, False)
@@ -64,7 +64,7 @@ def evaluate(test_record_file, vocab_path, word2vec_path, idx2word_path, res_pat
         handle = tf.placeholder(tf.string, shape=[])
         
         # restore model
-        model = Model(test_iterator, vocab_size, None, FLAGS)
+        model = Model(test_iterator, vocab_size, FLAGS)
         global_step = tf.Variable(0, name="global_step", trainable=False)
         latest_ckpt_path = tf.train.latest_checkpoint(ckpt_path)
         Log.info("load model start: ckpt_path = {}".format(latest_ckpt_path))
@@ -116,7 +116,7 @@ def evaluate(test_record_file, vocab_path, word2vec_path, idx2word_path, res_pat
             dist2 = cal_distinct(pred_list, 2)
             greedy_match, embed_avg, vec_extrema = embed_metrics(res_idx_list, pred_idx_list, word_embed)
             Log.info("=" * 40)
-            Log.info("loss: {:.3f} \t| bleu: {:.3f}\t| ppl: {:.3f} \t| dist_1 = {:.3f}, dist_2 = {:.3f} \t|"
+            Log.info("loss: {:.3f} \t| bleu: {:.3f}\t| ppl: {:.3f} \t| dist_1 = {:.3f}, dist_2 = {:.3f} \t| "
                     "greedy_match = {:.3f}, embed_avg = {:.3f}, vec_extrema = {:.3f}".format(mean_loss, bleu_score, 
                     mean_ppl, dist1, dist2, greedy_match, embed_avg, vec_extrema))
             Log.info("=" * 40)
@@ -134,5 +134,5 @@ if __name__ == "__main__":
     vocab_path = os.path.join(FLAGS.data_path, 'vocab.txt')
     word_embed_path = os.path.join(FLAGS.data_path, 'w2v.pkl')
     idx2word_path = os.path.join(FLAGS.data_path, 'idx2word.pkl')
-    res_path = os.path.join(FLAGS.res_path, '1571573645')
+    res_path = os.path.join(FLAGS.res_path, '1571656787')
     evaluate(test_record_file, vocab_path, word_embed_path, idx2word_path, res_path)
