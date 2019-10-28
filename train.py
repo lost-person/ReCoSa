@@ -197,9 +197,9 @@ def train_model(train_record_file, valid_record_file, vocab_path, word_embed_pat
             dist2 = cal_distinct(pred_list, 2)
             greedy_match, embed_avg, vec_extrema = embed_metrics(res_idx_list, pred_idx_list, word_embed)
             Log.info("=" * 40)
-            Log.info("loss: {:.3f} \t| bleu: {:.3f}\t| ppl: {:.3f}\t| dist_1 = {:.3f}, dist_2 = {:.3f}\t|"
-                    "greedy_match = {:.3f}, embed_avg = {:.3f}, vec_extrema = {:.3f}".format(mean_loss, bleu_score, 
-                    mean_ppl, dist1, dist2, greedy_match, embed_avg, vec_extrema))
+            Log.info("step: {} \t| loss: {:.3f}\t| bleu: {:.3f}\t| ppl: {:.3f}\t| dist_1 = {:.3f}, dist_2 = {:.3f}\t| "
+                    "greedy_match = {:.3f}, embed_avg = {:.3f}, vec_extrema = {:.3f}".format(global_step, mean_loss, 
+                    bleu_score, mean_ppl, dist1, dist2, greedy_match, embed_avg, vec_extrema))
             Log.info("=" * 40)
             
             summary_MeanLoss = tf.Summary(value=[tf.Summary.Value(tag="{}/mean_acc".format('dev'), 
