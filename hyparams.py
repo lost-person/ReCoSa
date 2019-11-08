@@ -6,16 +6,9 @@ hyperparameters of model
 
 import os
 
-data_prefix = 'ubuntu_data'
-if data_prefix == 'ubuntu_data':
-    data_path = os.path.join('data', 'ubuntu_data') # ubuntu data path
-    res_path = os.path.join('res', 'ubuntu_data') # ubuntu data path
-elif data_prefix == 'jd':
-    data_path = os.path.join('data', 'jd') # jd data path
-    res_path = os.path.join('res', 'jd') # jd data path
-else:
-    data_path = os.path.join('data', 'cornel_movies') # jd data path
-    res_path = os.path.join('res', 'cornel_movies') # jd data path
+data_name = 'ubuntu_data_v2'
+data_path = os.path.join('data', data_name)
+res_path = os.path.join('res', data_name)
 log_conf = './log.ini' # file path of log config
 
 num_threads = 4 # number of threads 

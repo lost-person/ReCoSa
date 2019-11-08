@@ -42,7 +42,7 @@ def load_tfrecord(record_file, FLAGS, is_training):
     return dataset
 
 
-def train_model(train_record_file, valid_record_file, vocab_path, word_embed_path, idx2word_path, res_path):
+def train_model(train_record_file, valid_record_file, vocab_path, idx2word_path, res_path):
     """
     train model
 
@@ -50,7 +50,6 @@ def train_model(train_record_file, valid_record_file, vocab_path, word_embed_pat
         train_record_file: str file path of train tf.recordfile
         valid_record_file: str file path of valid tf.recordfile
         vocab_path: str file path of vocabulary
-        word_embed_path: str file path of word embedding
         idx2word_path: str file path of idx -> word
         res_path: str file path of model's results
     """
@@ -71,10 +70,6 @@ def train_model(train_record_file, valid_record_file, vocab_path, word_embed_pat
     if not vocab_size:
         Log.info("get vocab_size err: vocab_path = {}".format(vocab_path))
         return
-    
-    if not os.path.exists(word_embed_path):
-        return
-    word_embed = load_word2vec(word_embed_path)
 
     # load data
     Log.info("load train and valid dataset start!")
@@ -195,11 +190,9 @@ def train_model(train_record_file, valid_record_file, vocab_path, word_embed_pat
             bleu_score = cal_bleu(target_list, pred_list)
             dist1 = cal_distinct(pred_list)
             dist2 = cal_distinct(pred_list, 2)
-            greedy_match, embed_avg, vec_extrema = embed_metrics(res_idx_list, pred_idx_list, word_embed)
             Log.info("=" * 40)
-            Log.info("step: {} \t| loss: {:.3f}\t| bleu: {:.3f}\t| ppl: {:.3f}\t| dist_1 = {:.3f}, dist_2 = {:.3f}\t| "
-                    "greedy_match = {:.3f}, embed_avg = {:.3f}, vec_extrema = {:.3f}".format(global_step, mean_loss, 
-                    bleu_score, mean_ppl, dist1, dist2, greedy_match, embed_avg, vec_extrema))
+            Log.info("loss: {:.3f} | bleu: {:.3f} | ppl: {:.3f} | dist_1 = {:.3f}, dist_2 = {:.3f}".format(
+                mean_loss, bleu_score, mean_ppl, dist1, dist2))
             Log.info("=" * 40)
             
             summary_MeanLoss = tf.Summary(value=[tf.Summary.Value(tag="{}/mean_acc".format('dev'), 
@@ -256,7 +249,6 @@ if __name__ == "__main__":
     train_record_file = os.path.join(FLAGS.data_path, 'train.tfrecords')
     valid_record_file = os.path.join(FLAGS.data_path, 'valid.tfrecords')
     vocab_path = os.path.join(FLAGS.data_path, 'vocab.txt')
-    word_embed_path = os.path.join(FLAGS.data_path, 'w2v.pkl')
     idx2word_path = os.path.join(FLAGS.data_path, 'idx2word.pkl')
     res_path = os.path.join(FLAGS.res_path, str(int(time.time())))
-    train_model(train_record_file, valid_record_file, vocab_path, word_embed_path, idx2word_path, res_path)
+    train_model(train_record_file, valid_record_file, vocab_path, idx2word_path, res_path)
