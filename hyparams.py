@@ -25,6 +25,7 @@ drop_rate = 0.1 # dropout rate
 num_epochs = 150000 # number of epochs
 buffer_size = 1500 # size of buffer
 batch_size = 64 # size of batch
+print_step = 1000 # print
 eval_step = 10000 # evaluation
 
 lr_rate = 1e-4 # learning rate
