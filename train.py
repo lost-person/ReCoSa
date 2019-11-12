@@ -118,6 +118,7 @@ def train_model(train_record_file, valid_record_file, vocab_path, idx2word_path,
         train_summary_op = tf.summary.merge([loss_summary, acc_summary])
         train_summary_dir = os.path.join(res_path, "summaries", "train")
         train_summary_writer = tf.summary.FileWriter(train_summary_dir)
+        train_summary_writer.add_graph(sess.graph)
         # Dev summaries
         dev_summary_dir = os.path.join(res_path, "summaries", "dev")
         dev_summary_writer = tf.summary.FileWriter(dev_summary_dir)
@@ -137,7 +138,7 @@ def train_model(train_record_file, valid_record_file, vocab_path, idx2word_path,
             _, step, summaries, batch_avg_loss, batch_avg_acc = sess.run(
                 [train_op, global_step, train_summary_op, model.batch_avg_loss, model.batch_avg_acc], feed_dict)
             
-            if step % 500 == 0:
+            if step % FLAGS.print_step == 0:
                 Log.info("Train Step: {:d} \t| loss: {:.3f}".format(step, batch_avg_loss))
             
             train_summary_writer.add_summary(summaries, step)
@@ -182,7 +183,7 @@ def train_model(train_record_file, valid_record_file, vocab_path, idx2word_path,
             
             target_list = [target.decode() for target in target_list]
             idx2word = pickle.load(open(idx2word_path, 'rb'))
-            pred_list = [" ".join(trans_idx2sen(pred_idx_list[i], idx2word)).split("</s>", 1)[0].strip() + "\n" 
+            pred_list = [" ".join(trans_idx2sen(pred_idx_list[i], idx2word)).split("</s>", 1)[0].strip()
                 for i in range(len(pred_idx_list))]    
             mean_loss = np.mean(loss_list)
             mean_ppl = np.mean(ppl_list)

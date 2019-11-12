@@ -99,7 +99,8 @@ def get_args():
     tf.flags.DEFINE_integer("buffer_size", hp.buffer_size, "Buffer Size")
     tf.flags.DEFINE_integer("batch_size", hp.batch_size, "Batch Size")
     tf.flags.DEFINE_integer("num_epochs", hp.num_epochs, "Number of training epochs")
-    tf.flags.DEFINE_integer("eval_step", hp.eval_step, "Evaluate model on dev set after this many steps")
+    tf.flags.DEFINE_integer("print_step", hp.print_step, "Print results of model")
+    tf.flags.DEFINE_integer("eval_step", hp.eval_step, "Evaluate model on dev set")
 
     # loss func parameters
     tf.flags.DEFINE_string('optimizer', 'adam', 'Which optimization method to use') # adam 0.001  adadelta
