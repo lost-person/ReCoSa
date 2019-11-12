@@ -77,24 +77,24 @@ def trans_list_id2embed(seq_id_list, word_embed):
         word_embed: tensor word embedding [vocab_size, embed_dim]
     """
     Log.info("transform sequence idx to embedding start: data_size = {}".format(len(seq_id_list)))
-    batch_seq_embed_list = [trans_id2embed(seq_id, word_embed) for seq_id in seq_id_list]
+    batch_seq_embed_list = [trans_id2embed(word_id_list, word_embed) for word_id_list in seq_id_list]
     Log.info("transform success!")
     return batch_seq_embed_list
 
 
-def trans_id2embed(seq_id, word_embed):
+def trans_id2embed(word_id_list, word_embed):
     """
     transform one sequence's idx to embedding
 
     Args:
-        seq_id: tensor sequence' word index, [max_uttr_len]
+        word_id_list: tensor sequence' word index, [max_uttr_len]
         word_embed: tensor word embedding [vocab_size, embed_dim]
     """
     seq_embed_list = []
-    for idx in seq_id:
-        if idx == 3:
+    for word_id in word_id_list:
+        if word_id == 3:
             break
-        seq_embed_list.append(word_embed[idx])
+        seq_embed_list.append(word_embed[word_id])
     return seq_embed_list
 
 

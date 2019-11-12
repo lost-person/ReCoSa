@@ -9,11 +9,10 @@ import pickle
 
 import numpy as np
 import tensorflow as tf
-from gensim.models.word2vec import LineSentence
-from gensim.models import word2vec
 
 import hyparams as hp
-from utils import trans_sen2idx, Log
+from utils import Log
+from vocab import load_word2idx, trans_sen2idxs
 
 
 def pad(context_list, response_list, word2idx, max_turn=hp.max_turn, max_uttr_len=hp.max_uttr_len):
@@ -51,8 +50,8 @@ def pad(context_list, response_list, word2idx, max_turn=hp.max_turn, max_uttr_le
         context_sen_idx_list = []
         # truncate idx list
         for context_sen in context_sen_list:
-            context_sen_idx_list.append(trans_sen2idx(context_sen + " </s>", word2idx)[-max_uttr_len:])
-        res_sen_idx_list = trans_sen2idx(response + " </s>", word2idx)[-max_uttr_len:]
+            context_sen_idx_list.append(trans_sen2idxs(context_sen + " </s>", word2idx)[-max_uttr_len:])
+        res_sen_idx_list = trans_sen2idxs(response + " </s>", word2idx)[-max_uttr_len:]
         context_idx_list.append(context_sen_idx_list[:max_turn])
         res_idx_list.append(res_sen_idx_list)
 
@@ -140,7 +139,7 @@ def gen_tf_records(data_path, word2idx_path, records_name, max_turn=hp.max_turn,
         return None
     
     context_list, response_list = load_dataset(data_path)
-    word2idx = pickle.load(open(word2idx_path, 'rb'))
+    word2idx = load_word2idx(word2idx_path)
 
     if not (len(context_list) and len(response_list) and len(word2idx)):
         Log.info("load data err: context_list_size = {}, response_list_size = {}, word2idx_size = {}".format(

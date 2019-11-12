@@ -14,7 +14,8 @@ from data_helpers import get_record_parser
 import hyparams as hp
 from model import Model
 from train import load_tfrecord
-from utils import get_vocab_size, get_args, trans_idx2sen, Log
+from vocab import get_vocab_size, load_idx2word, trans_idxs2sen
+from utils import get_args, save_tfsummary, save_atten_summary, Log
 from metrics import save_tgt_pred_sens, cal_bleu, cal_distinct, embed_metrics
 from pretrain_models import load_word2vec
 
@@ -72,6 +73,10 @@ def evaluate(test_record_file, vocab_path, word_embed_path, idx2word_path, res_p
         saver.restore(sess, latest_ckpt_path)
         Log.info("load model success")
 
+        # test summaries
+        test_summary_dir = os.path.join(res_path, "summaries", "test")
+        test_summary_writer = tf.summary.FileWriter(test_summary_dir)
+
         def dev_step():
             """
             evaluate step
@@ -104,9 +109,9 @@ def evaluate(test_record_file, vocab_path, word_embed_path, idx2word_path, res_p
                     break
             
             target_list = [target.decode() for target in target_list]
-            idx2word = pickle.load(open(idx2word_path, 'rb'))
-            pred_list = [" ".join(trans_idx2sen(pred_idx_list[i], idx2word)).split("</s>", 1)[0].strip() + "\n" 
-                for i in range(len(pred_idx_list))]    
+            idx2word = load_idx2word(idx2word_path)
+            pred_list = [trans_idxs2sen(pred_idx_list[i], idx2word).split("</s>", 1)[0].strip() 
+                for i in range(len(pred_idx_list))]      
             mean_loss = np.mean(loss_list)
             mean_ppl = np.mean(ppl_list)
             mean_acc = np.mean(acc)
@@ -116,8 +121,8 @@ def evaluate(test_record_file, vocab_path, word_embed_path, idx2word_path, res_p
             dist2 = cal_distinct(pred_list, 2)
             greedy_match, embed_avg, vec_extrema = embed_metrics(res_idx_list, pred_idx_list, word_embed)
             Log.info("=" * 40)
-            Log.info("step: {} \t| loss: {:.3f}\t| bleu: {:.3f}\t| ppl: {:.3f}\t| dist_1 = {:.3f}, dist_2 = {:.3f}\t| "
-                    "greedy_match = {:.3f}, embed_avg = {:.3f}, vec_extrema = {:.3f}".format(global_step, mean_loss, 
+            Log.info("loss: {:.3f}\t| bleu: {:.3f}\t| ppl: {:.3f}\t| dist_1 = {:.3f}, dist_2 = {:.3f}\t| "
+                    "greedy_match = {:.3f}, embed_avg = {:.3f}, vec_extrema = {:.3f}".format(mean_loss, 
                     bleu_score, mean_ppl, dist1, dist2, greedy_match, embed_avg, vec_extrema))
             Log.info("=" * 40)
         
@@ -125,6 +130,7 @@ def evaluate(test_record_file, vocab_path, word_embed_path, idx2word_path, res_p
 
 
 if __name__ == "__main__":
+    os.environ['CUDA_VISIBLE_DEVICES'] = '2'
     FLAGS = get_args()
     Log.info("Parameters:")
     for attr, value in FLAGS.flag_values_dict().items():
@@ -134,5 +140,5 @@ if __name__ == "__main__":
     vocab_path = os.path.join(FLAGS.data_path, 'vocab.txt')
     word_embed_path = os.path.join(FLAGS.data_path, 'w2v.pkl')
     idx2word_path = os.path.join(FLAGS.data_path, 'idx2word.pkl')
-    res_path = os.path.join(FLAGS.res_path, '1572062074')
+    res_path = os.path.join(FLAGS.res_path, '')
     evaluate(test_record_file, vocab_path, word_embed_path, idx2word_path, res_path)

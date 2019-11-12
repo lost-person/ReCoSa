@@ -22,55 +22,6 @@ def get_log(log_conf):
     return logging.getLogger()
 
 
-def trans_sen2idx(seq, word2idx):
-    """
-    transforms sentence to idx list
-
-    Args:
-        seq: str sequence
-        word2idx: dict word dictionary
-    Returns:
-        seq_idx_list: list list of index
-    """
-    idx_list = [word2idx.get(word, 1) for word in seq.split(' ')]
-    return idx_list
-
-
-def trans_idx2sen(idx_list, idx2word):
-    """
-    transforms sentence to idx list
-
-    Args:
-        idx_list: list list of idx
-        idx2word: dict idx2word dictionary
-    Returns:
-        seq_idx_list: list list of index
-    """
-    seq = [idx2word.get(idx, '<unk>') for idx in idx_list]
-    return seq
-
-
-def get_vocab_size(vocab_path):
-    """
-    get the size of vocabulary
-
-    Args:
-        vocab_path: str path of vocabulary
-    Return:
-        vocab_size: int size of vocabulary
-    """
-    if not os.path.exists(vocab_path):
-        Log.info("no data file exists: vocab_path = {}".format(vocab_path))
-        return None
-
-    Log.info("get size of vocabulary start: vocab_path = {}".format(vocab_path))
-    with open(vocab_path, 'r', encoding='utf-8') as f:
-        vocab_size = len(f.readlines())
-    
-    Log.info("get size of vocabulary success: size = {}".format(vocab_size))
-    return vocab_size
-
-
 def get_args():
     """
     get the arguments of train.py
@@ -112,5 +63,39 @@ def get_args():
 
     FLAGS = tf.flags.FLAGS
     return FLAGS
+
+
+def save_tfsummary(writer, step, key, value):
+    """
+    save summary of tensorflow
+
+    Args:
+        writer: FileWriter 
+        step: int step
+        key: str name of summary
+        value: object value of summary
+    """
+    summary = tf.Summary(value=[tf.Summary.Value(tag=key, simple_value=value)])
+    writer.add_summary(summary, step)
+
+
+def save_atten_summary(summary_writer, step, uttr_attn_list, context_attn_list, dec_self_attn_list, dec_van_attn_list):
+    for i, (uttr_layer_attn, context_layer_attn, dec_layer_self_attn, dec_layer_van_attn) in enumerate(zip(
+        uttr_attn_list, context_attn_list, dec_self_attn_list, dec_van_attn_list)):
+        for j, (uttr_head, context_head, dec_self_head, dec_van_head) in enumerate(zip(uttr_layer_attn, 
+            context_layer_attn, dec_layer_self_attn, dec_layer_van_attn)):
+            uttr_head_summary = tf.summary.image('uttr_layer{}_head{}'.format(i, j), tf.expand_dims(
+                tf.transpose(uttr_head, [0, 2, 1]), -1))
+            context_head_summary = tf.summary.image('context_layer{}_head{}'.format(i, j), tf.expand_dims(
+                tf.transpose(context_head, [0, 2, 1]), -1))
+            dec_self_head_summary = tf.summary.image('dec_layer{}_self_head{}'.format(i, j), tf.expand_dims(
+                tf.transpose(dec_self_head, [0, 2, 1])[:1], -1))
+            dec_van_head_summary = tf.summary.image('dec_layer{}_van_head{}'.format(i, j), tf.expand_dims(
+                tf.transpose(dec_van_head, [0, 2, 1]), -1))
+            summary_writer.add_summary(uttr_head_summary.eval(), step)
+            summary_writer.add_summary(context_head_summary.eval(), step)
+            summary_writer.add_summary(dec_self_head_summary.eval(), step)
+            summary_writer.add_summary(dec_van_head_summary.eval(), step)
+
 
 Log = get_log(hp.log_conf)

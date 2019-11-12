@@ -14,7 +14,8 @@ import tensorflow as tf
 import hyparams as hp
 from data_helpers import get_record_parser, gen_batch_dataset
 from model import Model
-from utils import get_vocab_size, get_args, trans_idx2sen, Log
+from utils import get_args, save_tfsummary, Log
+from vocab import get_vocab_size, load_idx2word, trans_idxs2sen
 from metrics import cal_bleu, save_tgt_pred_sens, cal_distinct, embed_metrics
 from pretrain_models import load_word2vec
 
@@ -100,7 +101,7 @@ def train_model(train_record_file, valid_record_file, vocab_path, idx2word_path,
         global_step = tf.Variable(0, name="global_step", trainable=False)
         lr_rate = tf.placeholder(tf.float32, shape=[])
         optimizer = tf.train.AdamOptimizer(lr_rate, beta1=0.9, beta2=0.98, epsilon=1e-8)
-        train_op = optimizer.minimize(model.batch_avg_loss, global_step=global_step)
+        train_op = optimizer.minimize(model.loss, global_step=global_step)
 
         saver = tf.train.Saver(max_to_keep=3)
         
@@ -111,14 +112,11 @@ def train_model(train_record_file, valid_record_file, vocab_path, idx2word_path,
         else:
             sess.run(tf.global_variables_initializer())
         
-        # Summaries for loss and accuracy
-        loss_summary = tf.summary.scalar("train/loss", model.batch_avg_loss)
-        acc_summary = tf.summary.scalar("train/accuracy", model.batch_avg_acc)
         # Train Summaries
-        train_summary_op = tf.summary.merge([loss_summary, acc_summary])
         train_summary_dir = os.path.join(res_path, "summaries", "train")
         train_summary_writer = tf.summary.FileWriter(train_summary_dir)
         train_summary_writer.add_graph(sess.graph)
+        
         # Dev summaries
         dev_summary_dir = os.path.join(res_path, "summaries", "dev")
         dev_summary_writer = tf.summary.FileWriter(dev_summary_dir)
@@ -135,13 +133,12 @@ def train_model(train_record_file, valid_record_file, vocab_path, idx2word_path,
                 model.dropout_rate: FLAGS.dropout_rate
             }
 
-            _, step, summaries, batch_avg_loss, batch_avg_acc = sess.run(
-                [train_op, global_step, train_summary_op, model.batch_avg_loss, model.batch_avg_acc], feed_dict)
-            
+            _, step, loss, acc = sess.run([train_op, global_step, model.loss, model.acc], feed_dict)
+            save_tfsummary(train_summary_writer, step, 'train/acc', acc)
+            save_tfsummary(train_summary_writer, step, 'train/loss', loss)
+
             if step % FLAGS.print_step == 0:
-                Log.info("Train Step: {:d} \t| loss: {:.3f}".format(step, batch_avg_loss))
-            
-            train_summary_writer.add_summary(summaries, step)
+                Log.info("Train Step: {:d} \t| loss: {:.3f}".format(step, loss))
 
 
         def dev_step():
@@ -157,10 +154,10 @@ def train_model(train_record_file, valid_record_file, vocab_path, idx2word_path,
             
             loss_list = []
             ppl_list = []
-            target_list = []
+            tgt_list = []
             res_idx_list = []
             pred_idx_list = []
-            acc = []
+            acc_list = []
 
             while True:
                 try:
@@ -168,42 +165,42 @@ def train_model(train_record_file, valid_record_file, vocab_path, idx2word_path,
                         handle: valid_handle,
                         model.dropout_rate: 0.0
                     }
-                    step, batch_avg_loss, ppl, batch_avg_acc, target, res, preds = sess.run([global_step, model.batch_avg_loss, 
-                        model.ppl, model.batch_avg_acc, model.target, model.response, model.preds], feed_dict)
+                    step, loss, ppl, acc, target, res, preds = sess.run([global_step, model.loss, 
+                        model.ppl, model.acc, model.target, model.response, model.preds], feed_dict)
 
-                    target_list.extend(target)
+                    tgt_list.extend(target)
                     res_idx_list.extend(res)
                     pred_idx_list.extend(preds)
-                    loss_list.append(batch_avg_loss)
+                    loss_list.append(loss)
                     ppl_list.append(ppl)
-                    acc.append(batch_avg_acc)
+                    acc_list.append(acc)
                     
                 except tf.errors.OutOfRangeError:
                     break
             
-            target_list = [target.decode() for target in target_list]
-            idx2word = pickle.load(open(idx2word_path, 'rb'))
-            pred_list = [" ".join(trans_idx2sen(pred_idx_list[i], idx2word)).split("</s>", 1)[0].strip()
+            tgt_list = [target.decode() for target in tgt_list]
+            idx2word = load_idx2word(idx2word_path)
+            pred_list = [trans_idxs2sen(pred_idx_list[i], idx2word).split("</s>", 1)[0].strip()
                 for i in range(len(pred_idx_list))]    
-            mean_loss = np.mean(loss_list)
-            mean_ppl = np.mean(ppl_list)
+            loss = np.mean(loss_list)
+            ppl = np.mean(ppl_list)
             mean_acc = np.mean(acc)
-            bleu_score = cal_bleu(target_list, pred_list)
+            bleu_score = cal_bleu(tgt_list, pred_list)
             dist1 = cal_distinct(pred_list)
             dist2 = cal_distinct(pred_list, 2)
             Log.info("=" * 40)
             Log.info("loss: {:.3f} | bleu: {:.3f} | ppl: {:.3f} | dist_1 = {:.3f}, dist_2 = {:.3f}".format(
-                mean_loss, bleu_score, mean_ppl, dist1, dist2))
+                loss, bleu_score, ppl, dist1, dist2))
             Log.info("=" * 40)
             
-            summary_MeanLoss = tf.Summary(value=[tf.Summary.Value(tag="{}/mean_acc".format('dev'), 
-                                        simple_value=np.mean(mean_acc))])
-            summary_MeanAcc = tf.Summary(value=[tf.Summary.Value(tag='{}/mean_loss'.format('dev'), 
-                                        simple_value=np.mean(mean_loss))])
-            dev_summary_writer.add_summary(summary_MeanLoss, step)
-            dev_summary_writer.add_summary(summary_MeanAcc, step)
+            save_tfsummary(dev_summary_writer, step, 'dev/acc', acc)
+            save_tfsummary(dev_summary_writer, step, 'dev/loss', loss)
+            save_tfsummary(dev_summary_writer, step, 'dev/ppl', ppl)
+            save_tfsummary(dev_summary_writer, step, 'dev/bleu', bleu_score)
+            save_tfsummary(dev_summary_writer, step, 'dev/dist1', dist1)
+            save_tfsummary(dev_summary_writer, step, 'dev/dist2', dist2)
       
-            return mean_loss, bleu_score, target_list, pred_list
+            return loss, bleu_score, tgt_list, pred_list
         
         early_break = 0
         optimal_loss = 100000

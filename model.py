@@ -106,14 +106,14 @@ class Model():
         self.logits = tf.layers.dense(self.dec, vocab_size)
         self.preds = tf.to_int32(tf.argmax(self.logits, dimension=-1))
         self.istarget = tf.to_float(tf.not_equal(self.response, 0))
-        self.batch_avg_acc = tf.reduce_sum(tf.to_float(tf.equal(self.preds, self.response)) * self.istarget) / (tf.reduce_sum(self.istarget))
+        self.acc = tf.reduce_sum(tf.to_float(tf.equal(self.preds, self.response)) * self.istarget) / (tf.reduce_sum(self.istarget))
 
         # loss
         if FLAGS.is_training:
             self.res_smoothed = label_smoothing(tf.one_hot(self.response, depth=vocab_size))
             self.loss = tf.nn.softmax_cross_entropy_with_logits_v2(labels=self.res_smoothed, logits=self.logits)
-            self.batch_avg_loss = tf.reduce_sum(self.loss * self.istarget) / (tf.reduce_sum(self.istarget))
-            self.ppl = tf.exp(self.batch_avg_loss)
+            self.loss = tf.reduce_sum(self.loss * self.istarget) / (tf.reduce_sum(self.istarget))
+            self.ppl = tf.exp(self.loss)
 
 if __name__ == "__main__":
     pass
