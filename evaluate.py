@@ -88,22 +88,22 @@ def evaluate(test_record_file, vocab_path, word_embed_path, idx2word_path, res_p
             target_list = []
             res_idx_list = []
             pred_idx_list = []
-            acc = []
+            acc_list = []
             while True:
                 try:
                     feed_dict = {
                         handle: test_handle,
                         model.dropout_rate: 0.0
                     }
-                    _, batch_avg_loss, ppl, batch_avg_acc, target, res, preds = sess.run([global_step, model.batch_avg_loss, 
-                        model.ppl, model.batch_avg_acc, model.target, model.response, model.preds], feed_dict)
+                    _, loss, ppl, acc, target, res, preds = sess.run([global_step, model.loss, 
+                        model.ppl, model.acc, model.target, model.response, model.preds], feed_dict)
                     
                     target_list.extend(target)
                     res_idx_list.extend(res)
                     pred_idx_list.extend(preds)
-                    loss_list.append(batch_avg_loss)
+                    loss_list.append(loss)
                     ppl_list.append(ppl)
-                    acc.append(batch_avg_acc)
+                    acc_list.append(acc)
                     
                 except tf.errors.OutOfRangeError:
                     break
@@ -112,9 +112,9 @@ def evaluate(test_record_file, vocab_path, word_embed_path, idx2word_path, res_p
             idx2word = load_idx2word(idx2word_path)
             pred_list = [trans_idxs2sen(pred_idx_list[i], idx2word).split("</s>", 1)[0].strip() 
                 for i in range(len(pred_idx_list))]      
-            mean_loss = np.mean(loss_list)
-            mean_ppl = np.mean(ppl_list)
-            mean_acc = np.mean(acc)
+            loss = np.mean(loss_list)
+            ppl = np.mean(ppl_list)
+            acc = np.mean(acc)
             bleu_score = cal_bleu(target_list, pred_list)
             save_tgt_pred_sens(os.path.join(pred_path, 'test_tgt_pred.txt'), target_list, pred_list)
             dist1 = cal_distinct(pred_list)
@@ -122,15 +122,14 @@ def evaluate(test_record_file, vocab_path, word_embed_path, idx2word_path, res_p
             greedy_match, embed_avg, vec_extrema = embed_metrics(res_idx_list, pred_idx_list, word_embed)
             Log.info("=" * 40)
             Log.info("loss: {:.3f}\t| bleu: {:.3f}\t| ppl: {:.3f}\t| dist_1 = {:.3f}, dist_2 = {:.3f}\t| "
-                    "greedy_match = {:.3f}, embed_avg = {:.3f}, vec_extrema = {:.3f}".format(mean_loss, 
-                    bleu_score, mean_ppl, dist1, dist2, greedy_match, embed_avg, vec_extrema))
+                    "greedy_match = {:.3f}, embed_avg = {:.3f}, vec_extrema = {:.3f}".format(loss, 
+                    bleu_score, ppl, dist1, dist2, greedy_match, embed_avg, vec_extrema))
             Log.info("=" * 40)
         
         dev_step()
 
 
 if __name__ == "__main__":
-    os.environ['CUDA_VISIBLE_DEVICES'] = '2'
     FLAGS = get_args()
     Log.info("Parameters:")
     for attr, value in FLAGS.flag_values_dict().items():
