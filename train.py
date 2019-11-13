@@ -186,19 +186,14 @@ def train_model(train_record_file, valid_record_file, vocab_path, idx2word_path,
             ppl = np.mean(ppl_list)
             mean_acc = np.mean(acc)
             bleu_score = cal_bleu(tgt_list, pred_list)
-            dist1 = cal_distinct(pred_list)
-            dist2 = cal_distinct(pred_list, 2)
             Log.info("=" * 40)
-            Log.info("loss: {:.3f} | bleu: {:.3f} | ppl: {:.3f} | dist_1 = {:.3f}, dist_2 = {:.3f}".format(
-                loss, bleu_score, ppl, dist1, dist2))
+            Log.info("loss: {:.3f} | bleu: {:.3f} | ppl: {:.3f}".format(loss, bleu_score, ppl))
             Log.info("=" * 40)
             
             save_tfsummary(dev_summary_writer, step, 'dev/acc', acc)
             save_tfsummary(dev_summary_writer, step, 'dev/loss', loss)
             save_tfsummary(dev_summary_writer, step, 'dev/ppl', ppl)
             save_tfsummary(dev_summary_writer, step, 'dev/bleu', bleu_score)
-            save_tfsummary(dev_summary_writer, step, 'dev/dist1', dist1)
-            save_tfsummary(dev_summary_writer, step, 'dev/dist2', dist2)
       
             return loss, bleu_score, tgt_list, pred_list
         
