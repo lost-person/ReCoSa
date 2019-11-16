@@ -14,10 +14,9 @@ import tensorflow as tf
 import hyparams as hp
 from data_helpers import get_record_parser, gen_batch_dataset
 from model import Model
-from utils import get_args, save_tfsummary, Log
+from utils import get_args, save_tfsummary, load_word2vec, Log
 from vocab import get_vocab_size, load_idx2word, trans_idxs2sen
 from metrics import cal_bleu, save_tgt_pred_sens, cal_distinct, embed_metrics
-from pretrain_models import load_word2vec
 
 
 def load_tfrecord(record_file, FLAGS, is_training):

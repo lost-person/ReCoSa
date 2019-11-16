@@ -65,6 +65,26 @@ def get_args():
     return FLAGS
 
 
+def load_word2vec(w2v_path):
+    """
+    load word embedding(after look-up)
+
+    Args:
+        w2v_path: str file path of word embedding
+    Returns:
+        pre_word_vec: Word2Vec pretrianed word embedding
+    """
+    if not os.path.exists(w2v_path):
+        Log.info("no data file exists: word2vec_path = {}".format(w2v_path))
+        return None
+    
+    Log.info("load word embedding start: word2vec_path = {}".format(w2v_path))
+    with open(w2v_path, 'rb') as f:
+        w2v = pickle.load(f)
+    Log.info("load word embedding success!")
+    return w2v_path
+
+
 def save_tfsummary(writer, step, key, value):
     """
     save summary of tensorflow
