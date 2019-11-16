@@ -15,9 +15,8 @@ import hyparams as hp
 from model import Model
 from train import load_tfrecord
 from vocab import get_vocab_size, load_idx2word, trans_idxs2sen
-from utils import get_args, save_tfsummary, save_atten_summary, Log
+from utils import get_args, load_word2vec, save_tfsummary, save_atten_summary, Log
 from metrics import save_tgt_pred_sens, cal_bleu, cal_distinct, embed_metrics
-from pretrain_models import load_word2vec
 
 
 def evaluate(test_record_file, vocab_path, word_embed_path, idx2word_path, res_path):
