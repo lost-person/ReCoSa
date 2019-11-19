@@ -6,7 +6,7 @@ hyperparameters of model
 
 import os
 
-data_name = 'ubuntu_data_v2'
+data_name = 'ubuntu_data'
 data_path = os.path.join('data', data_name)
 res_path = os.path.join('res', data_name)
 log_conf = './log.ini' # file path of log config

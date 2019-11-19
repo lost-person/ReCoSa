@@ -82,7 +82,7 @@ def load_word2vec(w2v_path):
     with open(w2v_path, 'rb') as f:
         w2v = pickle.load(f)
     Log.info("load word embedding success!")
-    return w2v_path
+    return w2v
 
 
 def save_tfsummary(writer, step, key, value):
