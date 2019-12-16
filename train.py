@@ -170,6 +170,7 @@ def train_model(train_record_file, valid_record_file, vocab_path, idx2word_path,
             dist_1 = cal_distinct(pred_list)
             dist_2 = cal_distinct(pred_list, 2)
             greedy_score, ea_score, ve_score = embed_metrics(res_idx_list, pred_idx_list, w2v)
+            score_list = [bleu_score, dist_1, dist_2, greedy_score, ea_score, ve_score]
 
             Log.info("=" * 40)
             Log.info(("loss: {:.3f} | ppl: {:.3f} | bleu: {:.3f} | dist_1: {:.3f}, dist_2: {:.3f} | " 
@@ -186,11 +187,11 @@ def train_model(train_record_file, valid_record_file, vocab_path, idx2word_path,
             save_tfsummary(dev_summary_writer, step, 'dev/embed_avg', ea_score)
             save_tfsummary(dev_summary_writer, step, 'dev/vec_extrema', ve_score)
       
-            return loss, bleu_score, tgt_list, pred_list
+            return loss, score_list, tgt_list, pred_list
         
         early_break = 0
         optimal_loss = 100000
-        optimal_score = 0
+        optimal_score_list = [0, 0, 0, 0, 0, 0]
         model_path = os.path.join(ckpt_path, 'model')
 
         Log.info("train model start!")
@@ -200,11 +201,13 @@ def train_model(train_record_file, valid_record_file, vocab_path, idx2word_path,
 
             if current_step % FLAGS.eval_step == 0:
                 Log.info("evaluate model start!")
-                cur_loss, cur_score, target_list, pred_list = dev_step()
+                cur_loss, cur_score_list, target_list, pred_list = dev_step()
 
                 # restore model
-                if cur_score > optimal_score:
-                    optimal_score = cur_score
+                tmp_score_res = np.array(cur_score_list) > np.array(optimal_score_list)
+                tmp_score_res = tmp_score_res.as_type(np.int32)
+                if np.sum(tmp_score_res) > len(optimal_score_list) / 2:
+                    optimal_score_list = cur_score_list
                     save_tgt_pred_sens(os.path.join(pred_path, 'tgt_pred.txt'), target_list, pred_list)
                     Log.info("update best model start: model path = {}".format(model_path))
                     saver.save(sess, os.path.join(ckpt_path, 'model'), global_step=current_step)
