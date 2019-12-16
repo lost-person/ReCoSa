@@ -7,6 +7,25 @@ from sklearn.feature_extraction.text import CountVectorizer
 
 from utils import Log
 
+def save_infer(infer_res_path, src_list, tgt_list, pred_list):
+    """
+    save results of infer
+
+    Args:
+        infer_res_path: str path of infer results
+        src_list: list list of source
+        tgt_list: list list of target
+        pred_idx_list: list of pred
+    """
+    Log.info("save infer results start: tgt_pred_path = {}".format(infer_res_path))
+    with open(infer_res_path, 'w', encoding='utf-8') as f:
+        for src, target, pred in zip(src_list, tgt_list, pred_list):
+            f.write("- src: " + src + "\n")
+            f.write("- tgt: " + target + "\n")
+            f.write("- pred: " + pred + "\n")
+            f.write('\n')
+    Log.info("save infer results success!")
+
 
 def save_tgt_pred_sens(tgt_pred_path, target_list, pred_list):
     """
@@ -61,7 +80,10 @@ def cal_distinct(pred_list, n_gram=1):
     factor = np.ones(ngram_arr.shape[1])
     dis_ngram_arr = np.dot(exist, factor)
     sum_arr = np.sum(ngram_arr, 1)
-    sum_arr[sum_arr == 0] = sys.maxsize
+    indics = sum_arr != 0
+    sum_arr = sum_arr[indics]
+    dis_ngram_arr = dis_ngram_arr[indics]
+    # sum_arr[sum_arr == 0] = sys.maxsize
     distinct_arr = dis_ngram_arr / sum_arr
     distinct_score = np.mean(distinct_arr)
     Log.info("calculate distinct score success")
@@ -144,8 +166,7 @@ def cal_greedy(embed_list1, embed_list2):
     score_list = []
     for embed1 in embed_list1:
         score_list.append(np.max([cal_cosine_similarity(embed1, embed2) for embed2 in embed_list2]))
-    socre = np.sum(score_list)
-    socre = np.divide(socre, len(embed_list1))
+    socre = np.mean(score_list)
     return socre
 
 
@@ -192,16 +213,11 @@ def cal_extrema_embed(embed_list, embed_dim):
     Returns:
         extrema_embed: array extrema embedding
     """
-    extrema_embed = np.zeros([embed_dim])
     # convert to tensor
     embed_arr = np.array(embed_list)
     max_arr = np.max(embed_arr, axis=0)
     min_arr = np.min(embed_arr, axis=0)
-    for i, (min_value, max_value) in enumerate(zip(min_arr, max_arr)):
-        if max_value > abs(min_value):
-            extrema_embed[i] = max_value
-        else:
-            extrema_embed[i] = min_value
+    extrema_embed = np.where(np.greater_equal(max_arr, abs(min_arr)), max_arr, min_arr)
     return extrema_embed
 
 

@@ -12,37 +12,14 @@ import pickle
 import tensorflow as tf
 
 import hyparams as hp
-from data_helpers import get_record_parser, gen_batch_dataset
+from data_helpers import get_record_parser, gen_batch_dataset, load_tfrecord
 from model import Model
 from utils import get_args, save_tfsummary, load_word2vec, Log
 from vocab import get_vocab_size, load_idx2word, trans_idxs2sen
 from metrics import cal_bleu, save_tgt_pred_sens, cal_distinct, embed_metrics
 
 
-def load_tfrecord(record_file, FLAGS, is_training):
-    """
-    load dataset to train
-
-    Args:
-        record_file: str file path of record
-        is_training: boolean train dataset or other
-        FLAGS: tf.flags 
-    Returns:
-        dataset
-    """
-    if not os.path.exists(record_file):
-        Log.info("no data file exists: record_file = {}".format(record_file))
-        return None
-
-    Log.info("load dataset start: record_file = {}".format(record_file))
-    parser = get_record_parser(FLAGS.max_turn, FLAGS.max_uttr_len)
-    dataset = gen_batch_dataset(record_file, parser, FLAGS.buffer_size, FLAGS.batch_size, 
-                FLAGS.num_threads, is_training)
-    Log.info("load dataset success!")
-    return dataset
-
-
-def train_model(train_record_file, valid_record_file, vocab_path, idx2word_path, res_path):
+def train_model(train_record_file, valid_record_file, vocab_path, idx2word_path, w2v_path, res_path):
     """
     train model
 
@@ -70,6 +47,11 @@ def train_model(train_record_file, valid_record_file, vocab_path, idx2word_path,
     if not vocab_size:
         Log.info("get vocab_size err: vocab_path = {}".format(vocab_path))
         return
+    
+    if not os.path.exists(w2v_path):
+        Log.info("invalid w2v_path: {}".format(w2v_path))
+        return
+    w2v = load_word2vec(w2v_path)
 
     # load data
     Log.info("load train and valid dataset start!")
@@ -83,6 +65,7 @@ def train_model(train_record_file, valid_record_file, vocab_path, idx2word_path,
     session_conf = tf.ConfigProto(
                 allow_soft_placement=FLAGS.allow_soft_placement,
                 log_device_placement=FLAGS.log_device_placement)
+    session_conf.gpu_options.allow_growth = True
     sess = tf.Session(config=session_conf)
 
     with sess.as_default():
@@ -183,16 +166,25 @@ def train_model(train_record_file, valid_record_file, vocab_path, idx2word_path,
                 for i in range(len(pred_idx_list))]    
             loss = np.mean(loss_list)
             ppl = np.mean(ppl_list)
-            mean_acc = np.mean(acc)
             bleu_score = cal_bleu(tgt_list, pred_list)
+            dist_1 = cal_distinct(pred_list)
+            dist_2 = cal_distinct(pred_list, 2)
+            greedy_score, ea_score, ve_score = embed_metrics(res_idx_list, pred_idx_list, w2v)
+
             Log.info("=" * 40)
-            Log.info("loss: {:.3f} | bleu: {:.3f} | ppl: {:.3f}".format(loss, bleu_score, ppl))
+            Log.info(("loss: {:.3f} | ppl: {:.3f} | bleu: {:.3f} | dist_1: {:.3f}, dist_2: {:.3f} | " 
+                    "greedy_match = {:.3f}, embed_avg: {:.3f}, vec_extrema: {:.3f}").format(loss, ppl, 
+                    bleu_score, dist_1, dist_2, greedy_score, ea_score, ve_score))
             Log.info("=" * 40)
-            
-            save_tfsummary(dev_summary_writer, step, 'dev/acc', acc)
+
             save_tfsummary(dev_summary_writer, step, 'dev/loss', loss)
             save_tfsummary(dev_summary_writer, step, 'dev/ppl', ppl)
             save_tfsummary(dev_summary_writer, step, 'dev/bleu', bleu_score)
+            save_tfsummary(dev_summary_writer, step, 'dev/dist-1', dist_1)
+            save_tfsummary(dev_summary_writer, step, 'dev/dist-2', dist_2)
+            save_tfsummary(dev_summary_writer, step, 'dev/greedy', greedy_score)
+            save_tfsummary(dev_summary_writer, step, 'dev/embed_avg', ea_score)
+            save_tfsummary(dev_summary_writer, step, 'dev/vec_extrema', ve_score)
       
             return loss, bleu_score, tgt_list, pred_list
         
@@ -231,6 +223,131 @@ def train_model(train_record_file, valid_record_file, vocab_path, idx2word_path,
         Log.info("trian model success!")
         
 
+def get_all_metrics(valid_record_file, vocab_size, idx2word_path, w2v_path, res_path):
+    """
+    get the best model to complete the whole metrics results
+
+    Args:
+        valid_record_file: str file path of valid tf.recordfile
+        vocab_size: int size of vocabulary
+        idx2word_path: str file path of idx -> word
+        w2v_path: str file path of word2vec
+        res_path: str file path of model's results
+    """
+    # create path that restore results of model
+    if not os.path.exists(res_path):
+        Log.info("invalid path: res_path = {}".format(res_path))
+        return
+    
+    ckpt_path = os.path.join(res_path, 'ckpt')
+    if not os.path.exists(ckpt_path):
+        Log.info("invalid path: ckpt_path = {}".format(ckpt_path))
+        return
+    
+    pred_path = os.path.join(res_path, 'pred')
+    if not os.path.exists(pred_path):
+        Log.info("invalid path: pred_path = {}".format(pred_path))
+        return
+
+    if not vocab_size:
+        Log.info("invalid vocab_size: {}".format(vocab_size))
+        return
+
+    if not os.path.exists(w2v_path):
+        Log.info("invalid w2v_path: {}".format(w2v_path))
+        return
+    w2v = load_word2vec(w2v_path)
+
+    # load test dataset
+    valid_dataset = load_tfrecord(valid_record_file, FLAGS, False)
+    if not valid_dataset:
+        Log.info("load valid dataset err!")
+        return
+    
+    session_conf = tf.ConfigProto(
+                allow_soft_placement=FLAGS.allow_soft_placement,
+                log_device_placement=FLAGS.log_device_placement)
+    session_conf.gpu_options.allow_growth = True
+    sess = tf.Session(config=session_conf)
+
+    with sess.as_default():
+        # data iterator
+        valid_iterator = valid_dataset.make_initializable_iterator()
+        handle = tf.placeholder(tf.string, shape=[])
+        
+        # restore model
+        Log.info("build model start!")
+        model = Model(valid_iterator, vocab_size, FLAGS)
+        Log.info("build model success!")
+        global_step = tf.Variable(0, name="global_step", trainable=False)
+        latest_ckpt_path = tf.train.latest_checkpoint(ckpt_path)
+        Log.info("load model start: ckpt_path = {}".format(latest_ckpt_path))
+        saver = tf.train.Saver()
+        saver.restore(sess, latest_ckpt_path)
+        Log.info("load model success")
+
+        # Dev summaries
+        dev_summary_dir = os.path.join(res_path, "summaries", "dev")
+        dev_summary_writer = tf.summary.FileWriter(dev_summary_dir)
+
+        def dev_step():
+            """
+            evaluate step
+            """
+            sess.run(valid_iterator.initializer)
+            valid_handle = sess.run(valid_iterator.string_handle())
+            loss_list = []
+            ppl_list = []
+            target_list = []
+            res_idx_list = []
+            pred_idx_list = []
+            uttr_attn_list = []
+            context_attn_list = []
+            res_self_attn_list = []
+            res_van_attn_list = []
+            
+            step = 0
+            cnt = 0
+            
+            while True:
+                try:
+                    feed_dict = {
+                        handle: valid_handle,
+                        model.dropout_rate: 0.0
+                    }
+                
+                    step, loss, ppl, target, res, pred = sess.run([global_step, model.loss, model.ppl, 
+                                                            model.target, model.response, model.preds], feed_dict)
+                    
+                    target_list.extend(target)
+                    res_idx_list.extend(res)
+                    pred_idx_list.extend(pred)
+                    loss_list.append(loss)
+                    ppl_list.append(ppl)
+                    
+                except tf.errors.OutOfRangeError:
+                    break
+            
+            target_list = [target.decode() for target in target_list]
+            idx2word = load_idx2word(idx2word_path)
+            pred_list = [trans_idxs2sen(pred_idx_list[i], idx2word).split("</s>", 1)[0].strip() 
+                for i in range(len(pred_idx_list))]    
+            loss = np.mean(loss_list)
+            ppl = np.mean(ppl_list)
+            bleu_score = cal_bleu(target_list, pred_list)
+            save_tgt_pred_sens(os.path.join(pred_path, 'test_tgt_pred.txt'), target_list, pred_list)
+            dist1 = cal_distinct(pred_list)
+            dist2 = cal_distinct(pred_list, 2)
+            greedy_match, embed_avg, vec_extrema = embed_metrics(res_idx_list, pred_idx_list, w2v)
+            Log.info("=" * 40)
+            Log.info("loss: {:.3f} | bleu: {:.3f} | ppl: {:.3f} | dist_1 = {:.3f}, dist_2 = {:.3f} | "
+                    "greedy_match = {:.3f}, embed_avg = {:.3f}, vec_extrema = {:.3f}".format(loss, 
+                    bleu_score, ppl, dist1, dist2, greedy_match, embed_avg, vec_extrema))
+            Log.info("=" * 40)
+        
+        dev_step()
+
+
 if __name__ == "__main__":
     FLAGS = get_args()
 
@@ -241,6 +358,9 @@ if __name__ == "__main__":
     train_record_file = os.path.join(FLAGS.data_path, 'train.tfrecords')
     valid_record_file = os.path.join(FLAGS.data_path, 'valid.tfrecords')
     vocab_path = os.path.join(FLAGS.data_path, 'vocab.txt')
+    vocab_size = get_vocab_size(vocab_path)
     idx2word_path = os.path.join(FLAGS.data_path, 'idx2word.pkl')
-    res_path = os.path.join(FLAGS.res_path, str(int(time.time())))
-    train_model(train_record_file, valid_record_file, vocab_path, idx2word_path, res_path)
+    w2v_path = os.path.join(FLAGS.data_path, 'w2v.pkl')
+    res_path = os.path.join(FLAGS.res_path, 'base')
+    train_model(train_record_file, valid_record_file, vocab_path, idx2word_path, w2v_path, res_path)
+    # get_all_metrics(valid_record_file, vocab_size, idx2word_path, w2v_path, res_path)

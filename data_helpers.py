@@ -223,6 +223,30 @@ def gen_batch_dataset(record_file, parse_example, buffer_size, batch_size, num_t
                     num_parallel_calls=num_threads).repeat(1).batch(batch_size)
     return dataset
 
+
+def load_tfrecord(record_file, FLAGS, is_training):
+    """
+    load dataset to train
+
+    Args:
+        record_file: str file path of record
+        is_training: boolean train dataset or other
+        FLAGS: tf.flags 
+    Returns:
+        dataset
+    """
+    if not os.path.exists(record_file):
+        Log.info("no data file exists: record_file = {}".format(record_file))
+        return None
+
+    Log.info("load dataset start: record_file = {}".format(record_file))
+    parser = get_record_parser(FLAGS.max_turn, FLAGS.max_uttr_len)
+    dataset = gen_batch_dataset(record_file, parser, FLAGS.buffer_size, FLAGS.batch_size, 
+                FLAGS.num_threads, is_training)
+    Log.info("load dataset success!")
+    return dataset
+
+
 if __name__ == "__main__":
     word2idx_path = os.path.join(hp.data_path, 'word2idx.pkl')
     gen_tf_records(os.path.join(hp.data_path, 'train_data.txt'), word2idx_path, 

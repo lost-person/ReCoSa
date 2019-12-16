@@ -25,7 +25,7 @@ class Model():
         """
         self.dropout_rate = tf.placeholder(tf.float32, name="dropout_rate")
         
-        if FLAGS.is_training:
+        if not FLAGS.infer:
             self.context, self.context_len, self.response, self.source, self.target = batch.get_next()
         else:
             self.context = tf.placeholder(tf.int32, shape=(None, FLAGS.max_turn, FLAGS.max_uttr_len))
@@ -109,10 +109,10 @@ class Model():
         self.acc = tf.reduce_sum(tf.to_float(tf.equal(self.preds, self.response)) * self.istarget) / (tf.reduce_sum(self.istarget))
 
         # loss
-        if FLAGS.is_training:
+        if not FLAGS.infer:
             self.res_smoothed = label_smoothing(tf.one_hot(self.response, depth=vocab_size))
             self.loss = tf.nn.softmax_cross_entropy_with_logits_v2(labels=self.res_smoothed, logits=self.logits)
-            self.loss = tf.reduce_sum(self.loss * self.istarget) / (tf.reduce_sum(self.istarget))
+            self.loss = tf.reduce_sum(self.loss * self.istarget) / (tf.reduce_sum(self.istarget) + 1e-7)
             self.ppl = tf.exp(self.loss)
 
 if __name__ == "__main__":

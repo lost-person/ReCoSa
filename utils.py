@@ -32,6 +32,7 @@ def get_args():
 
     tf.flags.DEFINE_string('data_path', hp.data_path, 'Path to dataset(default ubuntu dataset).')
     tf.flags.DEFINE_string('res_path', hp.res_path, 'Path to results')
+    tf.flags.DEFINE_boolean('infer', False, 'Reload model')
     tf.flags.DEFINE_boolean('reload_model', False, 'Reload model')
     tf.flags.DEFINE_boolean('is_training', True, 'Must be one of train/eval/decode')
     tf.flags.DEFINE_integer('num_threads', hp.num_threads, 'Number of threads')
