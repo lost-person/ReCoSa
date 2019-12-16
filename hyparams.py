@@ -23,7 +23,11 @@ buffer_size = 1500 # size of buffer
 batch_size = 64 # size of batch
 
 # print and evaluation step
-eval_step = 10000
-print_step = 1000
+if data_name.find('cornell') != -1:
+    print_step = 100
+    eval_step = 1000
+else:
+    eval_step = 10000
+    print_step = 1000
 
 lr_rate = 1e-4 # learning rate
