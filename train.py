@@ -205,7 +205,7 @@ def train_model(train_record_file, valid_record_file, vocab_path, idx2word_path,
 
                 # restore model
                 tmp_score_res = np.array(cur_score_list) > np.array(optimal_score_list)
-                tmp_score_res = tmp_score_res.as_type(np.int32)
+                tmp_score_res = tmp_score_res.astype(np.int32)
                 if np.sum(tmp_score_res) > len(optimal_score_list) / 2:
                     optimal_score_list = cur_score_list
                     save_tgt_pred_sens(os.path.join(pred_path, 'tgt_pred.txt'), target_list, pred_list)
