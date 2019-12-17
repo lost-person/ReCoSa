@@ -2,7 +2,7 @@
 
 import os
 
-data_name = 'jd'
+data_name = 'ubuntu_v2'
 data_path = os.path.join('data', data_name)
 res_path = os.path.join('res', data_name)
 log_conf = 'log.ini' # file path of log config
@@ -18,7 +18,7 @@ num_blocks = 6 # number of encoder/decoder blocks
 num_heads = 8 # number of heads in self-attention
 drop_rate = 0.1 # dropout rate
 
-num_epochs = 150000 # number of epochs
+num_epochs = 500000 # number of epochs
 buffer_size = 1500 # size of buffer
 batch_size = 64 # size of batch
 
