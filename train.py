@@ -107,8 +107,7 @@ def train_model(train_record_file, valid_record_file, vocab_path, idx2word_path,
         def train_step():
             """
             a single training step
-            """        
-            train_step = tf.train.global_step(sess, global_step)  
+            """
             feed_dict = {
                 lr_rate: FLAGS.lr_rate,
                 handle: train_handle, 
@@ -223,7 +222,7 @@ def train_model(train_record_file, valid_record_file, vocab_path, idx2word_path,
                 if early_break > 4:
                     break
         
-        Log.info("trian model success!")
+        Log.info("train model success!")
 
 if __name__ == "__main__":
     FLAGS = get_args()
