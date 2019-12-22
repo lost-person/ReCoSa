@@ -10,7 +10,7 @@ log_conf = 'log.ini' # file path of log config
 num_threads = 4 # number of threads 
 
 max_turn = 10 # maximum number of turns
-max_uttr_len = 25 # maximum number of words in an utterance
+max_uttr_len = 20 # maximum number of words in an utterance
 
 embedding_size = 256 # size of word embedding
 hidden_units = 512 # units of hidden layer
