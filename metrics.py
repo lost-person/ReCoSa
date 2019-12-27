@@ -7,25 +7,6 @@ from sklearn.feature_extraction.text import CountVectorizer
 
 from utils import Log
 
-def save_infer(infer_res_path, src_list, tgt_list, pred_list):
-    """
-    save results of infer
-
-    Args:
-        infer_res_path: str path of infer results
-        src_list: list list of source
-        tgt_list: list list of target
-        pred_idx_list: list of pred
-    """
-    Log.info("save infer results start: tgt_pred_path = {}".format(infer_res_path))
-    with open(infer_res_path, 'w', encoding='utf-8') as f:
-        for src, target, pred in zip(src_list, tgt_list, pred_list):
-            f.write("- src: " + src + "\n")
-            f.write("- tgt: " + target + "\n")
-            f.write("- pred: " + pred + "\n")
-            f.write('\n')
-    Log.info("save infer results success!")
-
 
 def save_tgt_pred_sens(tgt_pred_path, target_list, pred_list):
     """

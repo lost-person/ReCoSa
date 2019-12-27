@@ -16,7 +16,7 @@ import hyparams as hp
 from model import Model
 from vocab import get_vocab_size, load_idx2word, trans_idxs2sen
 from utils import get_args, load_word2vec, save_tfsummary, Log
-from metrics import save_infer
+from metrics import save_tgt_pred_sens
 
 
 def infer(test_record_file, vocab_size, idx2word_path, res_path):
@@ -79,24 +79,16 @@ def infer(test_record_file, vocab_size, idx2word_path, res_path):
             """
             evaluate step
             """
-            src_sample_list = []
             tgt_sample_list = []
             pred_idx_list = []
-            uttr_sample_attn_list = []
-            context_sample_attn_list = []
-            res_sample_self_attn_list = []
-            res_sample_van_attn_list = []
 
             cnt = 0
             while True:
                 try:
-                    context, context_len, _, source, target = test_iterator.get_next()
-                    context, context_len, source, target = sess.run([context, context_len, source, target])
-                    
-                    if cnt == 10:
-                        break
-                    
-                    pred = np.ones((FLAGS.batch_size, FLAGS.max_uttr_len), np.int32) * 2
+                    context, context_len, _, _, target = test_iterator.get_next()
+                    context, context_len, target = sess.run([context, context_len, target])
+                    batch_size = target.shape[0]
+                    pred = np.zeros((batch_size, FLAGS.max_uttr_len), np.int32)
                     
                     feed_dict = {
                         model.context: context,
@@ -110,20 +102,16 @@ def infer(test_record_file, vocab_size, idx2word_path, res_path):
                         
                         pred[:, j] = _pred[0][:, j]
                     
-                    src_sample_list.extend(source)
                     tgt_sample_list.extend(target)
                     pred_idx_list.extend(pred)
-
-                    cnt += 1
                     
                 except tf.errors.OutOfRangeError:
                     break
             
-            src_list = [source.decode() for source in src_sample_list]
             tgt_list = [target.decode() for target in tgt_sample_list]
             idx2word = load_idx2word(idx2word_path)
             pred_list = [trans_idxs2sen(pred_idx, idx2word).split("</s>", 1)[0].strip() for pred_idx in pred_idx_list] 
-            save_infer(os.path.join(pred_path, 'test_tgt_pred.txt'), src_list, tgt_list, pred_list)
+            save_tgt_pred_sens(os.path.join(pred_path, 'test_tgt_pred.txt'), tgt_list, pred_list)
         
         dev_step()
 
