@@ -207,7 +207,7 @@ def train_model(train_record_file, valid_record_file, vocab_path, idx2word_path,
                 tmp_score_arr = tmp_score_arr.astype(np.int32)
                 if np.sum(tmp_score_arr) > len(optimal_score_arr) / 2:
                     optimal_score_arr = cur_score_arr
-                    save_tgt_pred_sens(os.path.join(pred_path, 'tgt_pred.txt'), target_list, pred_list)
+                    save_tgt_pred_sens(os.path.join(pred_path, 'tgt_pred.txt'), target_list, pred_list, current_step)
                     Log.info("update best model start: model path = {}".format(model_path))
                     saver.save(sess, os.path.join(ckpt_path, 'model'), global_step=current_step)
                     Log.info("update model success!")

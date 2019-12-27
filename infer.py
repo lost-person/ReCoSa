@@ -111,7 +111,7 @@ def infer(test_record_file, vocab_size, idx2word_path, res_path):
             tgt_list = [target.decode() for target in tgt_sample_list]
             idx2word = load_idx2word(idx2word_path)
             pred_list = [trans_idxs2sen(pred_idx, idx2word).split("</s>", 1)[0].strip() for pred_idx in pred_idx_list] 
-            save_tgt_pred_sens(os.path.join(pred_path, 'test_tgt_pred.txt'), tgt_list, pred_list)
+            save_tgt_pred_sens(os.path.join(pred_path, 'test_tgt_pred.txt'), tgt_list, pred_list, 0)
         
         dev_step()
 
