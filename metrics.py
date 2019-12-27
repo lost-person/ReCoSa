@@ -90,69 +90,36 @@ def cal_distinct(pred_list, n_gram=1):
     return distinct_score
 
 
-def trans_list_id2embed(seq_id_list, word_embed):
+def trans_id2embed(seq, word2vec, keys):
+    """
+    transform one sequence's idx to embedding
+
+    Args:
+        seq: tensor sequence' word, [max_uttr_len]
+        word2vec: tensor word embedding [vocab_size, embed_dim]
+    """
+    seq_embed_list = []
+    for word in seq:
+        if word == 3:
+            break
+        if word in keys:
+            seq_embed_list.append(word2vec[word])
+    return seq_embed_list
+
+
+def trans_list_id2embed(seq_list, word2vec, keys, word_dim):
     """
     transform batch sequence's idx to embedding
 
     Args:
         seq_id_list: tensor batch sequence' word index, [batch_size, max_uttr_len]
-        word_embed: tensor word embedding [vocab_size, embed_dim]
+        word2vec: tensor word embedding [vocab_size, embed_dim]
     """
-    Log.info("transform sequence idx to embedding start: data_size = {}".format(len(seq_id_list)))
-    batch_seq_embed_list = [trans_id2embed(word_id_list, word_embed) for word_id_list in seq_id_list]
+    Log.info("transform sequence idx to embedding start: data_size = {}, emded_dim = {}".format(
+        len(seq_list), word_dim))
+    seq_embed_list = [trans_id2embed(seq.split(' '), word2vec, keys) for seq in seq_list]
     Log.info("transform success!")
-    return batch_seq_embed_list
-
-
-def trans_id2embed(word_id_list, word_embed):
-    """
-    transform one sequence's idx to embedding
-
-    Args:
-        word_id_list: tensor sequence' word index, [max_uttr_len]
-        word_embed: tensor word embedding [vocab_size, embed_dim]
-    """
-    seq_embed_list = []
-    for word_id in word_id_list:
-        if word_id == 3:
-            break
-        seq_embed_list.append(word_embed[word_id])
     return seq_embed_list
-
-
-def embed_metrics(res_seq_id_list, pred_seq_id_list, word_embed):
-    """
-    batch embedding-based metrics
-
-    Args:
-        res_seq_id_list: list batch response sequence' idx,  [batch_size, max_uttr_len]
-        pred_seq_id_list: list batch predict sequence' idx,  [batch_size, max_uttr_len]
-        word_embed: tensor word embedding
-    Return:
-        score: float 
-    """
-    Log.info("embedding_based metrics start: data_size = {}".format(len(res_seq_id_list)))
-    
-    greedy_score_list = []
-    embed_avg_score_list = []
-    vec_extrema_score_list = []
-    # transform idx to word embedding
-    res_seq_embed_list = trans_list_id2embed(res_seq_id_list, word_embed)
-    pred_seq_embed_list = trans_list_id2embed(pred_seq_id_list, word_embed)
-
-    embed_dim = word_embed.shape[1]
-    
-    # evaluate start
-    for res_seq_embed, pred_seq_embed in zip(res_seq_embed_list, pred_seq_embed_list):
-        greedy_score_list.append(greedy_match(res_seq_embed, pred_seq_embed))
-        embed_avg_score_list.append(embed_avg(res_seq_embed, pred_seq_embed))
-        vec_extrema_score_list.append(vec_extrema(res_seq_embed, pred_seq_embed, embed_dim))
-    
-    greedy_mean_score = np.mean(greedy_score_list)
-    embed_avg_mean_score = np.mean(embed_avg_score_list)
-    vec_extrema_mean_score = np.mean(vec_extrema_score_list)
-    Log.info("embedding_based metrics success")
-    return greedy_mean_score, embed_avg_mean_score, vec_extrema_mean_score
 
 
 def cal_greedy(embed_list1, embed_list2):
@@ -162,6 +129,8 @@ def cal_greedy(embed_list1, embed_list2):
     Args:
         embed_list1: list list of word embedding
         embed_list2: list list of word embedding
+    Returns:
+        score: float greedy score
     """
     score_list = []
     for embed1 in embed_list1:
@@ -170,36 +139,55 @@ def cal_greedy(embed_list1, embed_list2):
     return socre
 
 
-def greedy_match(res_embed_list, pred_embed_list):
+def greedy_match(tgt_embed_list, pred_embed_list):
     """
     calculate the greedy matching
 
     Args:
-        res_embed_list: list response sequence' word embedding
+        tgt_embed_list: list target sequence' word embedding
         pred_embed_list: list predict sequence' word embedding
     Returns:
-        score: float score of greedy match
+        greedy_score: float score of greedy match
     """
-    greedy1 = cal_greedy(res_embed_list, pred_embed_list)
-    greedy2 = cal_greedy(pred_embed_list, res_embed_list)
-    greedy = (greedy1 + greedy2) / 2
-    return greedy
+    Log.info("calculate the greedy match start: size = {}".format(len(tgt_embed_list)))
+    greedy_list = []
+    for tgt_embed, pred_embed in zip(tgt_embed_list, pred_embed_list):
+        if len(tgt_embed) == 0 or len(pred_embed) == 0:
+            greedy_list.append(0.0)
+            continue
+
+        greedy1 = cal_greedy(tgt_embed, pred_embed)
+        greedy2 = cal_greedy(pred_embed, tgt_embed)
+        greedy_score = (greedy1 + greedy2) / 2
+        greedy_list.append(greedy_score)
+    greedy_score = np.mean(greedy_list)
+    Log.info("calculate the greedy match success!")
+    return greedy_score
 
 
-def embed_avg(res_embed_list, pred_embed_list):
+def embed_avg(tgt_embed_list, pred_embed_list):
     """
     calculate the embeddign average
     
     Args:
-        res_embed_list: list list of response sequence' word embedding
+        tgt_embed_list: list list of target sequence' word embedding
         pred_embed_list: list list of predict sequence' word embedding
     Returns:
-        score: float score of embedding average
+        embed_avg_score: float score of embedding average
     """
-    res_avg_embed = np.divide(np.sum(res_embed_list, 0), np.linalg.norm(np.sum(res_embed_list, 0)))
-    pred_avg_embed = np.divide(np.sum(pred_embed_list, 0), np.linalg.norm(np.sum(pred_embed_list, 0)))
-    score = cal_cosine_similarity(res_avg_embed, pred_avg_embed)
-    return score
+    Log.info("calculate the embed avg start: size = {}".format(len(tgt_embed_list)))
+    embed_avg_list = []
+    for tgt_embed, pred_embed in zip(tgt_embed_list, pred_embed_list):
+        if len(tgt_embed) == 0 or len(pred_embed) == 0:
+            embed_avg_list.append(0.0)
+            continue
+        tgt_avg_embed = np.divide(np.sum(tgt_embed, 0), np.linalg.norm(np.sum(tgt_embed, 0)))
+        pred_avg_embed = np.divide(np.sum(pred_embed, 0), np.linalg.norm(np.sum(pred_embed, 0)))
+        embed_avg_score = cal_cosine_similarity(tgt_avg_embed, pred_avg_embed)
+        embed_avg_list.append(embed_avg_score)
+    embed_avg_score = np.mean(embed_avg_list)
+    Log.info("calculate the embed avg success!")
+    return embed_avg_score
 
 
 def cal_extrema_embed(embed_list, embed_dim):
@@ -221,21 +209,33 @@ def cal_extrema_embed(embed_list, embed_dim):
     return extrema_embed
 
 
-def vec_extrema(res_embed_list, pred_embed_list, embed_dim):
+def vec_extrema(tgt_embed_list, pred_embed_list, word_dim=None):
     """
     calculate the vector extrema
     
     Args:
-        res_embed_list: list list of response sequence' word embedding
+        tgt_embed_list: list list of target sequence' word embedding
         pred_embed_list: list list of predict sequence' word embedding
-        embed_dim: int word embedding
+        word_dim: int word embedding
     Returns:
         score: float score of vector extrema
     """
-    res_extrema_embed = cal_extrema_embed(res_embed_list, embed_dim)
-    pred_extrema_embed = cal_extrema_embed(pred_embed_list, embed_dim)
-    score = cal_cosine_similarity(res_extrema_embed, pred_extrema_embed)
-    return score
+    Log.info("calculate the vec extrema start: size = {}".format(len(tgt_embed_list)))
+    if not word_dim:
+        word_dim = tgt_embed_list[0][0].shape[0]
+    vec_extrema_list = []
+    for tgt_embed, pred_embed in zip(tgt_embed_list, pred_embed_list):
+        if len(tgt_embed) == 0 or len(pred_embed) == 0:
+            vec_extrema_list.append(0.0)
+            continue
+        
+        tgt_extrema_embed = cal_extrema_embed(tgt_embed, word_dim)
+        pred_extrema_embed = cal_extrema_embed(pred_embed, word_dim)
+        vec_extrema_score = cal_cosine_similarity(tgt_extrema_embed, pred_extrema_embed)
+        vec_extrema_list.append(vec_extrema_score)
+    vec_extrema_score = np.mean(vec_extrema_list)
+    Log.info("calculate the vec extrema success")
+    return vec_extrema_score
 
 
 def cal_cosine_similarity(vec_a, vec_b):

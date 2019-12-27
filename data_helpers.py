@@ -248,7 +248,7 @@ def load_tfrecord(record_file, FLAGS, is_training):
 
 
 if __name__ == "__main__":
-    word2idx_path = os.path.join(hp.data_path, 'word2idx.pkl')
+    word2idx_path = os.path.join(hp.data_path, 'word2id.pkl')
     gen_tf_records(os.path.join(hp.data_path, 'train_data.txt'), word2idx_path, 
                     os.path.join(hp.data_path, 'train.tfrecords'))
     gen_tf_records(os.path.join(hp.data_path, 'valid_data.txt'), word2idx_path, 

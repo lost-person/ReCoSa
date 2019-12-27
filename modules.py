@@ -125,7 +125,6 @@ def positional_encoding(inputs,
                         scope="positional_encoding",
                         reuse=None):
     '''Sinusoidal Positional_Encoding.
-
     Args:
       inputs: A 2d Tensor with shape of (N, T).
       num_units: Output dimensionality
@@ -134,7 +133,6 @@ def positional_encoding(inputs,
       scope: Optional scope for `variable_scope`.
       reuse: Boolean, whether to reuse the weights of a previous layer
         by the same name.
-
     Returns:
         A 'Tensor' with one more rank than inputs's, with the dimensionality should be 'num_units'
     '''
@@ -148,7 +146,7 @@ def positional_encoding(inputs,
             [pos / np.power(10000, 2.*i/num_units) for i in range(num_units)]
             for pos in range(T)])
 
-        # Second part, apply the cosine to even columns and sin to odds. Google
+        # Second part, apply the cosine to even columns and sin to odds.
         position_enc[:, 0::2] = np.sin(position_enc[:, 0::2])  # dim 2i
         position_enc[:, 1::2] = np.cos(position_enc[:, 1::2])  # dim 2i+1
 
@@ -164,7 +162,6 @@ def positional_encoding(inputs,
             outputs = outputs * num_units**0.5
 
         return outputs
-
 
 
 def multihead_attention(queries, 
