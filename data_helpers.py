@@ -11,8 +11,8 @@ import numpy as np
 import tensorflow as tf
 
 import hyparams as hp
-from utils import Log
-from vocab import load_word2idx, trans_sen2idxs
+from utils import pickle_load, Log
+from vocab import trans_sen2idxs
 
 
 def pad(context_list, response_list, word2idx, max_turn=hp.max_turn, max_uttr_len=hp.max_uttr_len):
@@ -139,7 +139,7 @@ def gen_tf_records(data_path, word2idx_path, records_name, max_turn=hp.max_turn,
         return None
     
     context_list, response_list = load_dataset(data_path)
-    word2idx = load_word2idx(word2idx_path)
+    word2idx = pickle_load(word2idx_path)
 
     if not (len(context_list) and len(response_list) and len(word2idx)):
         Log.info("load data err: context_list_size = {}, response_list_size = {}, word2idx_size = {}".format(

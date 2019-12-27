@@ -14,8 +14,8 @@ import tensorflow as tf
 import hyparams as hp
 from data_helpers import get_record_parser, gen_batch_dataset, load_tfrecord
 from model import Model
-from utils import get_args, save_tfsummary, load_word2vec, Log
-from vocab import get_vocab_size, load_idx2word, trans_idxs2sen
+from utils import get_args, save_tfsummary, pickle_load, Log
+from vocab import get_vocab_size, trans_idxs2sen
 from metrics import cal_bleu, save_tgt_pred_sens, cal_distinct, embed_metrics
 
 
@@ -51,7 +51,7 @@ def train_model(train_record_file, valid_record_file, vocab_path, idx2word_path,
     if not os.path.exists(w2v_path):
         Log.info("invalid w2v_path: {}".format(w2v_path))
         return
-    w2v = load_word2vec(w2v_path)
+    w2v = pickle_load(w2v_path)
 
     # load data
     Log.info("load train and valid dataset start!")
@@ -160,7 +160,7 @@ def train_model(train_record_file, valid_record_file, vocab_path, idx2word_path,
                     break
             
             tgt_list = [target.decode() for target in tgt_list]
-            idx2word = load_idx2word(idx2word_path)
+            idx2word = pickle_load(idx2word_path)
             pred_list = [trans_idxs2sen(pred_idx_list[i], idx2word).split("</s>", 1)[0].strip()
                 for i in range(len(pred_idx_list))]    
             loss = np.mean(loss_list)

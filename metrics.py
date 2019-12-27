@@ -8,7 +8,7 @@ from sklearn.feature_extraction.text import CountVectorizer
 from utils import Log
 
 
-def save_tgt_pred_sens(tgt_pred_path, target_list, pred_list):
+def save_tgt_pred_sens(tgt_pred_path, target_list, pred_list, step):
     """
     存储预测的句子
 
@@ -18,10 +18,12 @@ def save_tgt_pred_sens(tgt_pred_path, target_list, pred_list):
         pred_idx_list: list 预测结果列表
     """
     Log.info("save tgt and pred start: tgt_pred_path = {}".format(tgt_pred_path))
-    with open(tgt_pred_path, 'w', encoding='utf-8') as f:
+    with open(tgt_pred_path, 'a', encoding='utf-8') as f:
+        f.write('step: {}\n'.format(step))
         for target, pred in zip(target_list, pred_list):
             f.write("- tgt: " + target + "\n")
             f.write("- pred: " + pred + "\n")
+        f.write('\n')
     Log.info("save tgt and pred success!")
 
 

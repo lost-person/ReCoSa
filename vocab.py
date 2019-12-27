@@ -105,44 +105,6 @@ def gen_idx2word_from_vocab(vocab_path, idx2word_path):
     
     Log.info("gen idx2word success: idx2word_size = {}".format(len(idx2word)))
 
-
-def load_word2idx(word2idx_path):
-    """
-    load word -> idx dictionary
-
-    Args:
-        word2idx_path str path of word2idx
-    Returns:
-        word2idx: dict word -> idx dictionary
-    """
-    if not os.path.exists(word2idx_path):
-        Log.info("no data file exists: word2idx_path = {}".format(word2idx_path))
-        return
-    
-    Log.info("load word2idx start: word2idx_path = {}".format(word2idx_path))
-    word2idx = pickle.load(open(word2idx_path, 'rb'))
-    Log.info("load word2idx success: word2idx_size = {}".format(len(word2idx)))
-    return word2idx
-
-
-def load_idx2word(idx2word_path):
-    """
-    load word -> idx dictionary
-
-    Args:
-        idx2word_path str path of idx2word
-    Returns:
-        idx3word: dict idx -> word dictionary
-    """
-    if not os.path.exists(idx2word_path):
-        Log.info("no data file exists: idx2word_path = {}".format(idx2word_path))
-        return
-    
-    Log.info("load idx2word start: idx2word_path = {}".format(idx2word_path))
-    idx2word = pickle.load(open(idx2word_path, 'rb'))
-    Log.info("load idx2word success: idx2word_size = {}".format(len(idx2word)))
-    return idx2word
-
 def trans_sen2idxs(seq, word2idx):
     """
     transforms sentence to idx list
