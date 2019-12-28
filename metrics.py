@@ -23,7 +23,7 @@ def save_tgt_pred_sens(tgt_pred_path, target_list, pred_list, step):
         for target, pred in zip(target_list, pred_list):
             f.write("- tgt: " + target + "\n")
             f.write("- pred: " + pred + "\n")
-        f.write('\n')
+            f.write('\n')
     Log.info("save tgt and pred success!")
 
 

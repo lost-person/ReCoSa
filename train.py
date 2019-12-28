@@ -161,8 +161,7 @@ def train_model(train_record_file, valid_record_file, vocab_path, idx2word_path,
             
             tgt_list = [target.decode() for target in tgt_list]
             idx2word = pickle_load(idx2word_path)
-            pred_list = [trans_idxs2sen(pred_idx_list[i], idx2word).split("</s>", 1)[0].strip()
-                for i in range(len(pred_idx_list))]    
+            pred_list = [trans_idxs2sen(pred_idx_list[i], idx2word).strip() for i in range(len(pred_idx_list))]    
             loss = np.mean(loss_list)
             ppl = np.mean(ppl_list)
             bleu_score = cal_bleu(tgt_list, pred_list)
