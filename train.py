@@ -16,7 +16,7 @@ from data_helpers import get_record_parser, gen_batch_dataset, load_tfrecord
 from model import Model
 from utils import get_args, save_tfsummary, pickle_load, Log
 from vocab import get_vocab_size, trans_idxs2sen
-from metrics import cal_bleu, save_tgt_pred_sens, cal_distinct, embed_metrics
+from metrics import cal_bleu, save_tgt_pred_sens, cal_distinct, trans_list_id2embed, greedy_match, embed_avg, vec_extrema
 
 
 def train_model(train_record_file, valid_record_file, vocab_path, idx2word_path, w2v_path, res_path):
@@ -161,14 +161,20 @@ def train_model(train_record_file, valid_record_file, vocab_path, idx2word_path,
             
             tgt_list = [target.decode() for target in tgt_list]
             idx2word = pickle_load(idx2word_path)
-            pred_list = [trans_idxs2sen(pred_idx_list[i], idx2word).strip() for i in range(len(pred_idx_list))]    
+            pred_list = [trans_idxs2sen(pred_idx_list[i], idx2word).split("</s>")[0].strip() 
+                for i in range(len(pred_idx_list))]
+
+            tgt_embed_list = trans_list_id2embed(tgt_list, w2v[2], w2v[1], w2v[0])
+            pred_embed_list = trans_list_id2embed(pred_list, w2v[2], w2v[1], w2v[0])
+
             loss = np.mean(loss_list)
             ppl = np.mean(ppl_list)
             bleu_score = cal_bleu(tgt_list, pred_list)
             dist_1 = cal_distinct(pred_list)
             dist_2 = cal_distinct(pred_list, 2)
-            greedy_score, ea_score, ve_score = embed_metrics(res_idx_list, pred_idx_list, w2v)
-            score_arr = np.array([bleu_score, dist_1, dist_2, greedy_score, ea_score, ve_score])
+            greedy_score = greedy_match(tgt_embed_list, pred_embed_list)
+            ea_score= embed_avg(tgt_embed_list, pred_embed_list)
+            ve_score = vec_extrema(tgt_embed_list, pred_embed_list, w2v[0])
 
             Log.info("=" * 40)
             Log.info(("loss: {:.3f} | ppl: {:.3f} | bleu: {:.3f} | dist_1: {:.3f}, dist_2: {:.3f} | " 
@@ -185,7 +191,7 @@ def train_model(train_record_file, valid_record_file, vocab_path, idx2word_path,
             save_tfsummary(dev_summary_writer, step, 'dev/embed_avg', ea_score)
             save_tfsummary(dev_summary_writer, step, 'dev/vec_extrema', ve_score)
       
-            return loss, score_arr, tgt_list, pred_list
+            return loss, tgt_list, pred_list
         
         early_break = 0
         optimal_loss = 100000
@@ -199,17 +205,13 @@ def train_model(train_record_file, valid_record_file, vocab_path, idx2word_path,
 
             if current_step % FLAGS.eval_step == 0:
                 Log.info("evaluate model start!")
-                cur_loss, cur_score_arr, target_list, pred_list = dev_step()
+                cur_loss, target_list, pred_list = dev_step()
 
                 # restore model
-                tmp_score_arr = cur_score_arr > optimal_score_arr
-                tmp_score_arr = tmp_score_arr.astype(np.int32)
-                if np.sum(tmp_score_arr) > len(optimal_score_arr) / 2:
-                    optimal_score_arr = cur_score_arr
-                    save_tgt_pred_sens(os.path.join(pred_path, 'tgt_pred.txt'), target_list, pred_list, current_step)
-                    Log.info("update best model start: model path = {}".format(model_path))
-                    saver.save(sess, os.path.join(ckpt_path, 'model'), global_step=current_step)
-                    Log.info("update model success!")
+                save_tgt_pred_sens(os.path.join(pred_path, 'tgt_pred.txt'), target_list, pred_list, current_step)
+                Log.info("save model start: model path = {}".format(model_path))
+                saver.save(sess, os.path.join(ckpt_path, 'model'), global_step=current_step)
+                Log.info("save model success!")
                 Log.info("evaluate model success!")
 
                 # early stop

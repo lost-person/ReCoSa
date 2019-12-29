@@ -129,8 +129,7 @@ def trans_idxs2sen(idx_list, idx2word):
     Returns:
         seq: str sequence
     """
-    seq = ' '.join([idx2word.get(idx, '<unk>') for idx in idx_list if idx not in [
-            0, 2, 3]])
+    seq = ' '.join([idx2word.get(idx, '<unk>') for idx in idx_list])
     return seq
 
 
